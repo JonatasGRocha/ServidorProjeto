@@ -121,6 +121,88 @@ app.put('/lanches/:id', (req, res) => {
   );
 });
 
+//----------------------------------------------
+
+app.get('/pedidos', (req, res) => {
+  connection.query('SELECT * FROM pedidos', (err, rows) => {  
+    if (err) {                                               
+      console.error('Erro ao executar a consulta:', err);
+      res.status(500).send('Erro interno do servidor');      
+      return;
+    }
+    res.json(rows);  
+  });
+});
+
+app.get('/pedidos/:id', (req, res) => {
+  const pedidoId = req.params.id;   
+  connection.query('SELECT * FROM pedidos WHERE id = ?', [pedidoId], (err, rows) => {  
+    if (err) {                                       
+      console.error('Erro ao executar a consulta:', err);
+      res.status(500).send('Erro interno do servidor');  
+      return;
+    }
+    if (rows.length === 0) {                          
+      res.status(404).send('Pedido não encontrado');
+      return;
+    }
+    res.json(rows[0]); 
+  });
+});
+
+app.delete('/pedidos/:id', (req, res) => {
+const pedidoId = req.params.id;
+
+connection.query('DELETE FROM pedido WHERE id = ?', [pedidoId], (err, result) => {
+  if (err) {
+    console.error('Erro ao deletar Pedido:', err);
+    return res.status(500).send('Erro interno do servidor');
+  }
+
+  if (result.affectedRows === 0) {
+    return res.status(404).send('Pedido não encontrado');
+  }
+
+  res.status(200).send('Pedido deletado com sucesso');
+});
+});
+
+
+app.post('/pedidos', (req, res) => {
+const { cliente_nome,total,forma_pagamento,cidade,endereco,cep,data_pedido,status_pedido } = req.body;
+connection.query(
+  'INSERT INTO pedidos ( cliente_nome,total,forma_pagamento,cidade,endereco,cep,data_pedido,status_pedido) VALUES (?, ?, ?, ?)',  
+  [cliente_nome,total,forma_pagamento,cidade,endereco,cep,data_pedido,status_pedido],
+  (err, result) => {
+    if (err) {                                    
+      console.error('Erro ao inserir Pedido:', err);
+      res.status(500).send('Erro interno do servidor');  
+      return;
+    }
+    res.status(201).send('Pedido adicionado com sucesso');  
+  }
+);
+});
+
+
+app.put('/pedidos/:id', (req, res) => {
+const pedidoId = req.params.id;  
+const { cliente_nome,total,forma_pagamento,cidade,endereco,cep,data_pedido,status_pedido } = req.body;  
+connection.query(
+  'UPDATE pedidos SET cliente_nome = ?, total = ?, forma_pagamento = ?, cidade = ? , endereco = ?, cep = ? ,data_pedido = ?,status_pedido = ?  WHERE id = ?',  
+  [cliente_nome,total,forma_pagamento,cidade,endereco,cep,data_pedido,status_pedido, pedidoId],
+  (err, result) => {
+    if (err) {                                    
+      console.error('Erro ao atualizar Pedido:', err);
+      res.status(500).send('Erro interno do servidor');  
+      return;
+    }
+    res.send('Pedido atualizado com sucesso');  
+  }
+);
+});
+
+
   app.get('*', (req, res) => {
     res.status(404).send('Página não encontrada');
 });
