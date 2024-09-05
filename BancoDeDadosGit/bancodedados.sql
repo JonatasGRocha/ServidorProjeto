@@ -72,6 +72,7 @@ select * from lanches;
 
 select * from pedidos;
 
+
 -- Filtrar lanches por categoria (por exemplo, categoria 1 para hambúrgueres):
 SELECT * FROM lanches WHERE categoria = 1;
 

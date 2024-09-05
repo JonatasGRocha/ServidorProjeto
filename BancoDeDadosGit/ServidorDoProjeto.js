@@ -157,6 +157,7 @@ app.put('/pedidos/:id', (req, res) => {
   );
 });
 
+
 app.delete('/pedidos/:id', (req, res) => {
   const pedidoId = req.params.id;
   connection.query('DELETE FROM pedidos WHERE id = ?', [pedidoId], (err, result) => {
