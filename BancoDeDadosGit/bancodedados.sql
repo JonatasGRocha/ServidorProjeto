@@ -67,3 +67,88 @@ VALUES
 ('Julia', 8, 60.50, 'Cartão de crédito', 'Manaus', 'Rua H, 505', '69001-000', 'pendente'),
 ('Gabriel', 9, 70.20, 'Boleto', 'Brasília', 'Rua I, 606', '70001-000', 'pendente'),
 ('Larissa', 10, 33.30, 'Cartão de crédito', 'Recife', 'Rua J, 707', '50001-000', 'pendente');
+
+select * from lanches;
+
+select * from pedidos;
+
+
+-- Filtrar lanches por categoria (por exemplo, categoria 1 para hambúrgueres):
+SELECT * FROM lanches WHERE categoria = 1;
+
+-- Filtrar lanches por preço menor que 20.00:
+SELECT * FROM lanches WHERE preco < 20.00;
+
+-- Filtrar lanches pela categoria (por exemplo, "hambúrguer"):
+SELECT * FROM lanches WHERE categoria = 'Hamburguer';
+
+-- Filtrar lanches pela categoria (por exemplo, "açai"):
+SELECT * FROM lanches WHERE categoria = 'Açai';
+
+-- Filtrar lanches pela categoria (por exemplo, "bebidas"):
+SELECT * FROM lanches WHERE categoria = 'bebidas';
+
+-- Filtrar lanches por nome (por exemplo, "açai"):
+SELECT * FROM lanches WHERE categoria = 2 AND titulo LIKE '%açai%';
+
+-- Filtrar lanches por nome (por exemplo, "batata frita"):
+SELECT * FROM lanches WHERE categoria = 4 AND titulo LIKE '%batata frita%';
+
+-- Listar todos os lanches ordenados por preço crescente:
+SELECT * FROM lanches ORDER BY preco ASC;
+
+-- Filtrar lanches por categoria e preço menor que 15.00:
+SELECT * FROM lanches WHERE categoria = 2 AND preco < 15.00;
+
+-- Listar todos os lanches ordenados por titulo crescente:
+SELECT * FROM lanches ORDER BY titulo ASC;
+
+-- Filtrar lanches por nome (por exemplo, "refrigerante"):
+SELECT * FROM lanches WHERE categoria = 3 AND titulo LIKE '%refrigerante%';
+
+-- Filtrar lanches por nome (por exemplo, "pizza"):
+SELECT * FROM lanches WHERE categoria = 5 AND titulo LIKE '%pizza%';
+
+-- Filtrar lanches por preço entre 10.00 e 20.00:
+SELECT * FROM lanches WHERE preco BETWEEN 10.00 AND 20.00;
+
+-- Listar todos os lanches ordenados por categoria e título
+SELECT titulo, preco, categoria
+FROM lanches
+ORDER BY categoria, titulo;
+
+-- Listar todos os lanches com seus preços, incluindo o nome da categoria
+SELECT lanches.titulo, lanches.preco, lanches.categoria
+FROM lanches;
+
+-- Contar quantos lanches existem em cada categoria:
+SELECT lanches.categoria AS categoria, COUNT(lanches.id) AS total_lanches
+FROM lanches group by lanches.categoria;
+
+-- Listar todos os lanches de categoria 1 e 2:
+SELECT titulo, preco, categoria
+FROM lanches
+WHERE categoria IN (1, 2);
+
+-- listar todos os lanches de categoria 1 e 2 em uma única lista, ordenados por preço decrescente:
+SELECT titulo, preco FROM lanches WHERE categoria = 1
+UNION ALL
+SELECT titulo, preco FROM lanches WHERE categoria = 2
+ORDER BY preco DESC;
+
+-- atualiza o pedido do cliente que esta pendente para entregue:
+update pedidos set status_pedido = 'entregue' where pedidos.id = 2;
+
+-- filtrar por status de entrega nesse exemlpo esta entregue:
+select * from pedidos
+where status_pedido = 'entregue';
+
+-- filtrar por status de entrega nesse exemlpo esta pendente:
+select * from pedidos
+where status_pedido = 'pendente' ;
+
+-- exibir quantos pedidos estão pendentes
+SELECT COUNT(status_pedido) as pedidos_pendentes from pedidos where status_pedido = 'pendente';
+
+-- exibir quantos pedidos foram entregues
+SELECT COUNT(status_pedido) as pedidos_entregues from pedidos where status_pedido = 'entregue';
