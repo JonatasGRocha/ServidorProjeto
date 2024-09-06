@@ -21,6 +21,8 @@ connection.connect((err) => {
 
 app.use(express.json());
 
+//lanches
+
 app.get('/lanches', (req, res) => {
   connection.query('SELECT * FROM lanches', (err, rows) => {
     if (err) {
@@ -96,6 +98,8 @@ app.delete('/lanches/:id', (req, res) => {
     res.status(200).send('Lanche deletado com sucesso');
   });
 });
+
+//pedidos
 
 app.get('/pedidos', (req, res) => {
   connection.query('SELECT * FROM pedidos', (err, rows) => {
@@ -173,6 +177,97 @@ app.delete('/pedidos/:id', (req, res) => {
     res.status(200).send('Pedido deletado com sucesso');
   });
 });
+
+app.post('/filtro', (req, res) => {
+  const {
+    categoria,
+    preco,
+    'status-pedido': statusPedido,
+    'cliente-nome': clienteNome,
+    total,
+    'forma-pagamento': formaPagamento,
+    cidade,
+    endereco,
+    cep,
+    'itens-pedidos': itensPedidos,
+    titulo,
+  } = req.body;
+
+  // Construir a consulta SQL base
+  let query = `
+    SELECT lanches.*, pedidos.*, pedido_lanches.quantidade
+    FROM lanches
+    INNER JOIN pedido_lanches ON lanches.id = pedido_lanches.lanche_id
+    INNER JOIN pedidos ON pedido_lanches.pedido_id = pedidos.id
+    WHERE 1=1
+  `;
+  let params = [];
+
+  // Adicionar filtros à consulta
+  const filters = {
+    categoria: { clause: 'lanches.categoria = ?', value: categoria },
+    preco: { clause: 'lanches.preco <= ?', value: preco ? parseFloat(preco) : null },
+    'status-pedido': { clause: 'pedidos.status_pedido = ?', value: statusPedido },
+    'cliente-nome': { clause: 'pedidos.cliente_nome LIKE ?', value: clienteNome ? `%${clienteNome}%` : null },
+    total: { clause: 'pedidos.total <= ?', value: total ? parseFloat(total) : null },
+    'forma-pagamento': { clause: 'pedidos.forma_pagamento = ?', value: formaPagamento },
+    cidade: { clause: 'pedidos.cidade LIKE ?', value: cidade ? `%${cidade}%` : null },
+    endereco: { clause: 'pedidos.endereco LIKE ?', value: endereco ? `%${endereco}%` : null },
+    cep: { clause: 'pedidos.cep LIKE ?', value: cep ? `%${cep}%` : null },
+    'itens-pedidos': { clause: 'pedido_lanches.lanche_id = ?', value: itensPedidos ? parseInt(itensPedidos) : null },
+    titulo: { clause: 'lanches.titulo LIKE ?', value: titulo ? `%${titulo}%` : null },
+  };
+
+  // Adicionar cláusulas e parâmetros válidos
+  Object.keys(filters).forEach(key => {
+    const { clause, value } = filters[key];
+    if (value !== null && value !== undefined) {
+      query += ` AND ${clause}`;
+      params.push(value);
+    }
+  });
+
+  // Executar a consulta
+  connection.query(query, params, (err, rows) => {
+    if (err) {
+      console.error('Erro ao executar a consulta:', err);
+      res.status(500).send('Erro interno do servidor');
+      return;
+    }
+    if (rows.length === 0) {
+      res.status(404).send('Nenhum resultado encontrado com os filtros aplicados');
+      return;
+    }
+
+    res.json(rows);
+  });
+});
+
+app.put('/statusPedido/:id', (req, res) => {
+  const statusPedidoId = req.params.id;
+  const { status_pedido } = req.body;
+
+  connection.query(
+    'UPDATE pedidos SET status_pedido = ? WHERE id = ?',
+    [status_pedido, statusPedidoId],
+    (err, result) => {
+      if (err) {                                       
+        console.error('Erro ao executar a atualização do status do pedido:', err);
+        res.status(500).send('Erro interno do servidor');  
+        return;
+      }
+
+      if (result.affectedRows === 0) {                          
+        res.status(404).send('Nenhum pedido encontrado');
+        return;
+      } 
+
+      res.status(200).send('Status do pedido atualizado com sucesso' ); 
+    }
+  ); 
+});
+
+//outros
 
 app.get('*', (req, res) => {
   res.status(404).send('Página não encontrada');

@@ -1,21 +1,25 @@
--- Create the database
+-- Alterar o usuário root para usar autenticação mysql_native_password
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '';
+SELECT User FROM mysql.user;
+
+-- Criar o banco de dados
 CREATE DATABASE Acaiteria
 DEFAULT CHARACTER SET utf8
 DEFAULT COLLATE utf8_general_ci;
 
--- Use the database
+-- Usar o banco de dados
 USE Acaiteria;
 
--- Tabela de Lanches (Produtos já cadastrados)
+-- Criar a tabela de lanches
 CREATE TABLE lanches (
-    id INT UNIQUE AUTO_INCREMENT PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     titulo VARCHAR(250) NOT NULL,
     preco DECIMAL(10,2) NOT NULL,
-    categoria ENUM('Hamburguer', 'Açaí', 'Bebidas', 'Batata frita', 'Pizza'),
+    categoria ENUM('Hamburguer', 'Açaí', 'Bebidas', 'Batata frita'),
     descricao VARCHAR(300)
 ) DEFAULT CHARSET = utf8;
 
--- Inserindo produtos
+-- Inserir produtos na tabela de lanches
 INSERT INTO lanches (titulo, preco, categoria, descricao)
 VALUES
 ('X-Burger', 17.00, 'Hamburguer', 'Hamburger com queijo, bacon e maionese especial'),
@@ -39,9 +43,9 @@ VALUES
 ('Refrigerante de Limão', 5.00, 'Bebidas', 'Lata de refrigerante de limão 350ml'),
 ('Batata Frita com Alho', 9.50, 'Batata frita', 'Batata frita com alho frito');
 
--- Tabela de Pedidos
+-- Criar a tabela de pedidos
 CREATE TABLE pedidos (
-    id INT UNIQUE AUTO_INCREMENT PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     cliente_nome VARCHAR(100) NOT NULL,
     total DECIMAL(10,2),
     forma_pagamento ENUM('Pix', 'Cartão de crédito', 'Boleto') NOT NULL,
@@ -49,106 +53,127 @@ CREATE TABLE pedidos (
     endereco VARCHAR(250) NOT NULL,
     cep VARCHAR(10) NOT NULL,
     data_pedido TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    itens_pedidos INT,
-    status_pedido ENUM('pendente', 'entregue') DEFAULT 'pendente',
-    FOREIGN KEY (itens_pedidos) REFERENCES lanches(id)
+    status_pedido ENUM('pendente', 'entregue') DEFAULT 'pendente'
 ) DEFAULT CHARSET = utf8;
 
--- Inserindo pedidos de clientes
-INSERT INTO pedidos (cliente_nome, itens_pedidos, total, forma_pagamento, cidade, endereco, cep, status_pedido)
+-- Criar a tabela intermediária para relacionar pedidos e lanches
+CREATE TABLE pedido_lanches (
+    pedido_id INT,
+    lanche_id INT,
+    quantidade INT DEFAULT 1,
+    PRIMARY KEY (pedido_id, lanche_id),
+    FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE,
+    FOREIGN KEY (lanche_id) REFERENCES lanches(id) ON DELETE CASCADE
+) DEFAULT CHARSET = utf8;
+
+-- Inserir pedidos de clientes
+INSERT INTO pedidos (cliente_nome, total, forma_pagamento, cidade, endereco, cep, status_pedido)
 VALUES
-('João', 1, 35.50, 'Pix', 'São Paulo', 'Rua A, 123', '01001-000', 'pendente'),
-('Maria', 2, 27.90, 'Cartão de crédito', 'Rio de Janeiro', 'Rua B, 456', '20001-000', 'pendente'),
-('Carlos', 3, 50.00, 'Pix', 'Belo Horizonte', 'Rua C, 789', '30001-000', 'pendente'),
-('Ana', 4, 15.75, 'Boleto', 'Porto Alegre', 'Rua D, 101', '90001-000', 'pendente'),
-('Pedro', 5, 22.40, 'Pix', 'Curitiba', 'Rua E, 202', '80001-000', 'pendente'),
-('Mariana', 6, 80.00, 'Cartão de crédito', 'Salvador', 'Rua F, 303', '40001-000', 'entregue'),
-('Lucas', 7, 45.30, 'Pix', 'Fortaleza', 'Rua G, 404', '60001-000', 'pendente'),
-('Julia', 8, 60.50, 'Cartão de crédito', 'Manaus', 'Rua H, 505', '69001-000', 'pendente'),
-('Gabriel', 9, 70.20, 'Boleto', 'Brasília', 'Rua I, 606', '70001-000', 'pendente'),
-('Larissa', 10, 33.30, 'Cartão de crédito', 'Recife', 'Rua J, 707', '50001-000', 'pendente');
+('João', 35.50, 'Pix', 'São Paulo', 'Rua A, 123', '01001-000', 'pendente'),
+('Maria', 27.90, 'Cartão de crédito', 'Rio de Janeiro', 'Rua B, 456', '20001-000', 'pendente'),
+('Carlos', 50.00, 'Pix', 'Belo Horizonte', 'Rua C, 789', '30001-000', 'pendente'),
+('Ana', 15.75, 'Boleto', 'Porto Alegre', 'Rua D, 101', '90001-000', 'pendente'),
+('Pedro', 22.40, 'Pix', 'Curitiba', 'Rua E, 202', '80001-000', 'pendente'),
+('Mariana', 80.00, 'Cartão de crédito', 'Salvador', 'Rua F, 303', '40001-000', 'entregue'),
+('Lucas', 45.30, 'Pix', 'Fortaleza', 'Rua G, 404', '60001-000', 'pendente'),
+('Julia', 60.50, 'Cartão de crédito', 'Manaus', 'Rua H, 505', '69001-000', 'pendente'),
+('Gabriel', 70.20, 'Boleto', 'Brasília', 'Rua I, 606', '70001-000', 'pendente'),
+('Larissa', 33.30, 'Cartão de crédito', 'Recife', 'Rua J, 707', '50001-000', 'pendente');
 
-select * from lanches;
+-- Inserir itens nos pedidos
+INSERT INTO pedido_lanches (pedido_id, lanche_id, quantidade)
+VALUES
+(1, 1, 2),  -- João pediu 2 X-Burgers
+(1, 4, 1),  -- João também pediu 1 Batata Frita Grande
+(2, 7, 1),  -- Maria pediu 1 Guaraná Antarctica
+(2, 8, 1),  -- Maria também pediu 1 Batata Frita com Cheddar
+(3, 11, 1), -- Carlos pediu 1 Água Mineral
+(4, 5, 2),  -- Ana pediu 2 Double Cheeseburgers
+(5, 9, 1),  -- Pedro pediu 1 Hamburger de Frango
+(6, 15, 1), -- Mariana pediu 1 Açaí com Nutella
+(7, 3, 2),  -- Lucas pediu 2 Sucos de Laranja
+(8, 10, 1), -- Julia pediu 1 Açaí com Paçoca
+(9, 12, 1), -- Gabriel pediu 1 Batata Frita com Bacon
+(10, 14, 1); -- Larissa pediu 1 Açaí com Leite em Pó
 
-select * from pedidos;
+-- Listar todos os lanches
+SELECT * FROM lanches;
 
+-- Listar todos os pedidos
+SELECT * FROM pedidos;
 
--- Filtrar lanches por categoria (por exemplo, categoria 1 para hambúrgueres):
-SELECT * FROM lanches WHERE categoria = 1;
-
--- Filtrar lanches por preço menor que 20.00:
-SELECT * FROM lanches WHERE preco < 20.00;
-
--- Filtrar lanches pela categoria (por exemplo, "hambúrguer"):
+-- Filtrar lanches por categoria (por exemplo, categoria 'Hamburguer'):
 SELECT * FROM lanches WHERE categoria = 'Hamburguer';
 
--- Filtrar lanches pela categoria (por exemplo, "açai"):
-SELECT * FROM lanches WHERE categoria = 'Açai';
+-- Filtrar lanches por preço menor que 20.00
+SELECT * FROM lanches WHERE preco < 20.00;
 
--- Filtrar lanches pela categoria (por exemplo, "bebidas"):
-SELECT * FROM lanches WHERE categoria = 'bebidas';
+-- Filtrar lanches por categoria 'Açaí':
+SELECT * FROM lanches WHERE categoria = 'Açaí';
 
--- Filtrar lanches por nome (por exemplo, "açai"):
-SELECT * FROM lanches WHERE categoria = 2 AND titulo LIKE '%açai%';
+-- Filtrar lanches por categoria 'Bebidas':
+SELECT * FROM lanches WHERE categoria = 'Bebidas';
 
--- Filtrar lanches por nome (por exemplo, "batata frita"):
-SELECT * FROM lanches WHERE categoria = 4 AND titulo LIKE '%batata frita%';
+-- Filtrar lanches por nome (por exemplo, 'Açaí'):
+SELECT * FROM lanches WHERE categoria = 'Açaí' AND titulo LIKE '%Açaí%';
+
+-- Filtrar lanches por nome (por exemplo, 'Batata Frita'):
+SELECT * FROM lanches WHERE categoria = 'Batata frita' AND titulo LIKE '%Batata Frita%';
 
 -- Listar todos os lanches ordenados por preço crescente:
 SELECT * FROM lanches ORDER BY preco ASC;
 
--- Filtrar lanches por categoria e preço menor que 15.00:
-SELECT * FROM lanches WHERE categoria = 2 AND preco < 15.00;
+-- Filtrar lanches por categoria 'Açaí' e preço menor que 15.00:
+SELECT * FROM lanches WHERE categoria = 'Açaí' AND preco < 15.00;
 
--- Listar todos os lanches ordenados por titulo crescente:
+-- Listar todos os lanches ordenados por título crescente:
 SELECT * FROM lanches ORDER BY titulo ASC;
 
--- Filtrar lanches por nome (por exemplo, "refrigerante"):
-SELECT * FROM lanches WHERE categoria = 3 AND titulo LIKE '%refrigerante%';
+-- Filtrar lanches por nome (por exemplo, 'Refrigerante'):
+SELECT * FROM lanches WHERE categoria = 'Bebidas' AND titulo LIKE '%Refrigerante%';
 
--- Filtrar lanches por nome (por exemplo, "pizza"):
-SELECT * FROM lanches WHERE categoria = 5 AND titulo LIKE '%pizza%';
+-- Filtrar lanches por nome (por exemplo, 'Pizza'):
+SELECT * FROM lanches WHERE categoria = 'Pizza' AND titulo LIKE '%Pizza%';
 
 -- Filtrar lanches por preço entre 10.00 e 20.00:
 SELECT * FROM lanches WHERE preco BETWEEN 10.00 AND 20.00;
 
--- Listar todos os lanches ordenados por categoria e título
+-- Listar todos os lanches ordenados por categoria e título:
 SELECT titulo, preco, categoria
 FROM lanches
 ORDER BY categoria, titulo;
 
--- Listar todos os lanches com seus preços, incluindo o nome da categoria
+-- Listar todos os lanches com seus preços, incluindo o nome da categoria:
 SELECT lanches.titulo, lanches.preco, lanches.categoria
 FROM lanches;
 
 -- Contar quantos lanches existem em cada categoria:
-SELECT lanches.categoria AS categoria, COUNT(lanches.id) AS total_lanches
-FROM lanches group by lanches.categoria;
+SELECT categoria, COUNT(id) AS total_lanches
+FROM lanches
+GROUP BY categoria;
 
--- Listar todos os lanches de categoria 1 e 2:
+-- Listar todos os lanches de categoria 'Hamburguer' e 'Açaí':
 SELECT titulo, preco, categoria
 FROM lanches
-WHERE categoria IN (1, 2);
+WHERE categoria IN ('Hamburguer', 'Açaí');
 
--- listar todos os lanches de categoria 1 e 2 em uma única lista, ordenados por preço decrescente:
-SELECT titulo, preco FROM lanches WHERE categoria = 1
+-- Listar todos os lanches de categoria 'Hamburguer' e 'Açaí' em uma única lista, ordenados por preço decrescente:
+SELECT titulo, preco FROM lanches WHERE categoria = 'Hamburguer'
 UNION ALL
-SELECT titulo, preco FROM lanches WHERE categoria = 2
+SELECT titulo, preco FROM lanches WHERE categoria = 'Açaí'
 ORDER BY preco DESC;
 
--- atualiza o pedido do cliente que esta pendente para entregue:
-update pedidos set status_pedido = 'entregue' where pedidos.id = 2;
+-- Atualizar o pedido do cliente com id = 2 para 'entregue':
+UPDATE pedidos SET status_pedido = 'entregue' WHERE id = 2;
 
--- filtrar por status de entrega nesse exemlpo esta entregue:
-select * from pedidos
-where status_pedido = 'entregue';
+-- Filtrar pedidos com status 'entregue':
+SELECT * FROM pedidos WHERE status_pedido = 'entregue';
 
--- filtrar por status de entrega nesse exemlpo esta pendente:
-select * from pedidos
-where status_pedido = 'pendente' ;
+-- Filtrar pedidos com status 'pendente':
+SELECT * FROM pedidos WHERE status_pedido = 'pendente';
 
--- exibir quantos pedidos estão pendentes
-SELECT COUNT(status_pedido) as pedidos_pendentes from pedidos where status_pedido = 'pendente';
+-- Exibir quantos pedidos estão pendentes:
+SELECT COUNT(*) AS pedidos_pendentes FROM pedidos WHERE status_pedido = 'pendente';
 
--- exibir quantos pedidos foram entregues
-SELECT COUNT(status_pedido) as pedidos_entregues from pedidos where status_pedido = 'entregue';
+-- Exibir quantos pedidos foram entregues:
+SELECT COUNT(*) AS pedidos_entregues FROM pedidos WHERE status_pedido = 'entregue';
