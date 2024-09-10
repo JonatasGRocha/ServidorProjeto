@@ -80,6 +80,7 @@ VALUES
 ('Gabriel', 70.20, 'Boleto', 'Brasília', 'Rua I, 606', '70001-000', 'pendente'),
 ('Larissa', 33.30, 'Cartão de crédito', 'Recife', 'Rua J, 707', '50001-000', 'pendente');
 
+
 -- Inserir itens nos pedidos
 INSERT INTO pedido_lanches (pedido_id, lanche_id, quantidade)
 VALUES
