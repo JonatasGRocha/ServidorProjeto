@@ -1,6 +1,6 @@
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '';
 SELECT User FROM mysql.user;
-
+ 
 -- Criar o banco de dados
 CREATE DATABASE Acaiteria
 DEFAULT CHARACTER SET utf8
