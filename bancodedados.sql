@@ -85,6 +85,7 @@ VALUES
 (4, 8, 2, 18.00, 'Boleto', 'pendente'), -- Pedido 4: Ana comprou 2 Batata Frita com Cheddar
 (5, 7, 1, 5.00, 'Pix', 'pendente'); -- Pedido 5: Pedro comprou 1 Guaraná Antarctica
 
+SELECT COUNT(cliente_id) AS total_pedidos FROM pedidos WHERE cliente_id = 2;
 
 
 -- Listar todos os lanches

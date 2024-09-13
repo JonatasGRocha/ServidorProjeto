@@ -1,7 +1,81 @@
 const{connection} = require ('./configBD')
 const{app} = require ('./app')
 
+app.get('/historico/:id', (req, res) => {
+  const clienteId = req.params.id;
 
+  // Consulta SQL para pegar todos os dados do cliente com base no ID, exceto o ID
+  const clienteQuery = 'SELECT nome, email, telefone, endereco, cidade, cep FROM clientes WHERE id = ?';
+
+  // Consulta SQL para somar o número total de itens comprados pelo cliente
+  const itensQuery = 'SELECT SUM(quantidade) AS total_itens FROM pedidos WHERE cliente_id = ?';
+
+  // Consulta SQL para contar o número total de pedidos do cliente
+  const pedidosQuery = 'SELECT COUNT(*) AS total_pedidos FROM pedidos WHERE cliente_id = ?';
+
+  // Consulta SQL para buscar detalhes do primeiro pedido do cliente
+  const detalhesPedidosQuery = `
+    SELECT quantidade, total, forma_pagamento, data_pedido, status_pedido 
+    FROM pedidos 
+    WHERE cliente_id = ? LIMIT 1`;
+
+  // Executar a query do cliente
+  connection.query(clienteQuery, [clienteId], (err, clienteResult) => {
+    if (err) {
+      console.error('Erro ao buscar cliente:', err);
+      return res.status(500).send('Erro interno do servidor');
+    }
+
+    // Verifica se o cliente foi encontrado
+    if (clienteResult.length === 0) {
+      return res.status(404).send('Cliente não encontrado');
+    }
+
+    // Executar a query de soma dos itens
+    connection.query(itensQuery, [clienteId], (err, itensResult) => {
+      if (err) {
+        console.error('Erro ao buscar itens:', err);
+        return res.status(500).send('Erro interno do servidor');
+      }
+
+      // Executar a query de contagem de pedidos
+      connection.query(pedidosQuery, [clienteId], (err, pedidosResult) => {
+        if (err) {
+          console.error('Erro ao contar pedidos:', err);
+          return res.status(500).send('Erro interno do servidor');
+        }
+
+        // Executar a query de detalhes do primeiro pedido
+        connection.query(detalhesPedidosQuery, [clienteId], (err, detalhesPedidosResult) => {
+          if (err) {
+            console.error('Erro ao buscar detalhes dos pedidos:', err);
+            return res.status(500).send('Erro interno do servidor');
+          }
+
+          // Combina os resultados e organiza a resposta JSON
+          const clienteInfo = clienteResult[0]; // Informações do cliente
+          const pedidos_realizados = pedidosResult[0].total_pedidos; // Total de pedidos
+          const detalhesPedido = detalhesPedidosResult[0] || {}; // Detalhes do primeiro pedido, se houver
+
+          // Organiza os dados do cliente e inclui o primeiro pedido diretamente
+          res.json({
+            historico_do_pedido: {
+              ...clienteInfo, // Dados do cliente
+              quantidade: detalhesPedido.quantidade || null, // Quantidade do pedido
+              total: detalhesPedido.total || null, // Total do pedido
+              forma_pagamento: detalhesPedido.forma_pagamento || null, // Forma de pagamento do pedido
+              data_pedido: detalhesPedido.data_pedido || null, // Data do pedido
+              status_pedido: detalhesPedido.status_pedido || null, // Status do pedido
+              cep: clienteInfo.cep, // CEP
+              pedidos_realizados: pedidos_realizados // Número total de pedidos
+            }
+          });
+        });
+      });
+    });
+  });
+});
+ 
 //Rodando perfeitamente, só n pega numero INT//
 app.get('/pesquisar/:termo', (req, res) => {
   const searchTerm = req.params.termo; // Obtém o termo de pesquisa a partir da URL
@@ -10,28 +84,45 @@ app.get('/pesquisar/:termo', (req, res) => {
     return res.status(400).send('Termo de pesquisa é necessário');
   }
 
+  // Verifica se o termo é um número inteiro
+  const isNumber = /^\d+$/.test(searchTerm);
   const searchValue = `%${searchTerm}%`;
 
   // Função para pesquisar em uma única consulta SQL nos campos desejados
-  const query = `
-    SELECT nome AS info FROM clientes WHERE nome LIKE ?
-    UNION
-    SELECT email AS info FROM clientes WHERE email LIKE ?
-    UNION
-    SELECT endereco AS info FROM clientes WHERE endereco LIKE ?
-    UNION
-    SELECT cidade AS info FROM clientes WHERE cidade LIKE ?
-    UNION
-    SELECT titulo AS info FROM lanches WHERE titulo LIKE ?
-    UNION
-    SELECT descricao AS info FROM lanches WHERE descricao LIKE ?
-    UNION
-    SELECT forma_pagamento AS info FROM pedidos WHERE forma_pagamento LIKE ?
-    UNION
-    SELECT status_pedido AS info FROM pedidos WHERE status_pedido LIKE ?;
-  `;
+  let query;
+  let queryParams;
 
-  connection.query(query, Array(8).fill(searchValue), (err, rows) => {
+  if (isNumber) {
+    // Se o termo for um número, procura em campos numéricos
+    query = `
+      SELECT forma_pagamento AS info FROM pedidos WHERE forma_pagamento LIKE ?
+      UNION
+      SELECT status_pedido AS info FROM pedidos WHERE status_pedido LIKE ?;
+    `;
+    queryParams = Array(2).fill(searchValue);
+  } else {
+    // Se o termo for texto, pesquisa em campos de texto
+    query = `
+      SELECT nome AS info FROM clientes WHERE nome LIKE ?
+      UNION
+      SELECT email AS info FROM clientes WHERE email LIKE ?
+      UNION
+      SELECT endereco AS info FROM clientes WHERE endereco LIKE ?
+      UNION
+      SELECT cidade AS info FROM clientes WHERE cidade LIKE ?
+      UNION
+      SELECT titulo AS info FROM lanches WHERE titulo LIKE ?
+      UNION
+      SELECT descricao AS info FROM lanches WHERE descricao LIKE ?
+      UNION
+      SELECT forma_pagamento AS info FROM pedidos WHERE forma_pagamento LIKE ?
+      UNION
+      SELECT status_pedido AS info FROM pedidos WHERE status_pedido LIKE ?;
+    `;
+    queryParams = Array(8).fill(searchValue);
+  }
+
+  connection.query(query, queryParams, (err, rows) => {
     if (err) {
       console.error('Erro ao executar a consulta:', err);
       return res.status(500).send('Erro interno do servidor');
@@ -45,144 +136,6 @@ app.get('/pesquisar/:termo', (req, res) => {
     res.json(rows.map(row => row.info));
   });
 });
-
-//teste1//
-app.get('/pesquisar/:termo', (req, res) => {
-  const searchTerms = req.params.termo.split(' ');  // Divide os termos por espaços
-  const searchProduct = searchTerms[0];  // Primeiro termo como produto
-  const searchPrice = searchTerms[1] ? parseFloat(searchTerms[1]) : null;  // Segundo termo como preço, se existir
-
-  if (!searchProduct && !searchPrice) {
-    return res.status(400).send('Pelo menos um termo de pesquisa é necessário');
-  }
-
-  // Query SQL para pesquisar tanto por strings quanto por números
-  let query = `
-    SELECT nome, email, telefone, endereco, cidade, cep
-    FROM clientes 
-    WHERE nome LIKE ? OR email LIKE ? OR telefone = ? OR endereco LIKE ? OR cidade LIKE ? OR cep = ?
-    UNION
-    SELECT titulo AS nome, descricao AS email, preco AS telefone, NULL AS endereco, NULL AS cidade, NULL AS cep
-    FROM lanches 
-    WHERE titulo LIKE ? OR descricao LIKE ?
-  `;
-
-  let queryValues = [
-    `%${searchProduct}%`,  // nome (LIKE)
-    `%${searchProduct}%`,  // email (LIKE)
-    searchProduct,         // telefone (inteiro)
-    `%${searchProduct}%`,  // endereco (LIKE)
-    `%${searchProduct}%`,  // cidade (LIKE)
-    searchProduct,         // cep (inteiro)
-    `%${searchProduct}%`,  // titulo (LIKE)
-    `%${searchProduct}%`   // descricao (LIKE)
-  ];
-
-  // Se o preço foi incluído na pesquisa, adicionar na query
-  if (searchPrice) {
-    query += `
-      UNION
-      SELECT titulo AS nome, descricao AS email, preco AS telefone, NULL AS endereco, NULL AS cidade, NULL AS cep
-      FROM lanches 
-      WHERE preco = ?
-    `;
-    queryValues.push(searchPrice);  // Adiciona o preço como valor
-  }
-
-  // Executar a query
-  connection.query(query, queryValues, (err, rows) => {
-    if (err) {
-      console.error('Erro ao executar a consulta:', err);
-      return res.status(500).send('Erro interno do servidor');
-    }
-
-    if (rows.length === 0) {
-      return res.status(404).send('Nenhum resultado encontrado');
-    }
-
-    res.json(rows);
-  });
-});
-
-//teste2//
-app.get('/pesquisar/:termo/:preco?', (req, res) => {
-  const { termo, preco } = req.params;
-
-  if (!termo && !preco) {
-    return res.status(400).send('É necessário fornecer pelo menos um termo para "produto" ou "preço".');
-  }
-
-  // Verifica se o termo de pesquisa é numérico
-  const isNumeric = !isNaN(termo);
-
-  // Define o valor de busca, se for string utiliza "%" para fazer busca com LIKE
-  const searchValue = isNumeric ? termo : `%${termo}%`;
-
-  // Inicia a query SQL para buscar em todas as tabelas
-  let query = `
-    SELECT nome AS resultado FROM clientes WHERE nome LIKE ?
-    UNION
-    SELECT email AS resultado FROM clientes WHERE email LIKE ?
-    UNION
-    SELECT telefone AS resultado FROM clientes WHERE telefone = ?
-    UNION
-    SELECT endereco AS resultado FROM clientes WHERE endereco LIKE ?
-    UNION
-    SELECT cidade AS resultado FROM clientes WHERE cidade LIKE ?
-    UNION
-    SELECT cep AS resultado FROM clientes WHERE cep = ?
-    UNION
-    SELECT titulo AS resultado FROM lanches WHERE titulo LIKE ?
-    UNION
-    SELECT descricao AS resultado FROM lanches WHERE descricao LIKE ?
-    UNION
-    SELECT categoria AS resultado FROM lanches WHERE categoria LIKE ?
-    UNION
-    SELECT forma_pagamento AS resultado FROM pedidos WHERE forma_pagamento LIKE ?
-    UNION
-    SELECT status_pedido AS resultado FROM pedidos WHERE status_pedido LIKE ?
-  `;
-
-  // Array de valores que serão passados para o SQL
-  const queryValues = [
-    searchValue,  // nome (LIKE)
-    searchValue,  // email (LIKE)
-    termo,        // telefone (número exato)
-    searchValue,  // endereco (LIKE)
-    searchValue,  // cidade (LIKE)
-    termo,        // cep (número exato)
-    searchValue,  // titulo (LIKE)
-    searchValue,  // descricao (LIKE)
-    searchValue,  // categoria (LIKE)
-    searchValue,  // forma_pagamento (LIKE)
-    searchValue   // status_pedido (LIKE)
-  ];
-
-  // Se o preço foi informado, adiciona uma condição de busca por preço
-  if (preco) {
-    query += ` UNION SELECT preco AS resultado FROM lanches WHERE preco <= ?`;
-    queryValues.push(preco);  // adiciona o preço ao array de valores
-  }
-
-  // Executa a consulta no banco de dados
-  connection.query(query, queryValues, (err, rows) => {
-    if (err) {
-      console.error('Erro ao executar a consulta:', err);
-      return res.status(500).send('Erro interno do servidor');
-    }
-
-    if (rows.length === 0) {
-      return res.status(404).send('Nenhum resultado encontrado.');
-    }
-
-    // Retorna os resultados encontrados em formato JSON
-    res.json(rows);
-  });
-});
-
-
-
-
 
 app.get('/pedidos', (req, res) => {
   const query = `
