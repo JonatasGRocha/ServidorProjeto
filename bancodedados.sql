@@ -1,4 +1,3 @@
--- Alterar o usuário root para usar autenticação mysql_native_password
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '';
 SELECT User FROM mysql.user;
 
@@ -9,6 +8,26 @@ DEFAULT COLLATE utf8_general_ci;
 
 -- Usar o banco de dados
 USE Acaiteria;
+
+-- Criar a tabela de clientes
+CREATE TABLE clientes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    telefone INT(20) NOT NULL,
+    endereco VARCHAR(255) NOT NULL,
+    cidade VARCHAR(100) NOT NULL,
+    cep INT(10) NOT NULL
+);
+
+-- Inserir clientes na tabela de clientes
+INSERT INTO clientes (nome, email, telefone, endereco, cidade, cep)
+VALUES
+('João', 'joao@example.com', 111111111, 'Rua A, 123', 'São Paulo', 01001-000),
+('Maria', 'maria@example.com', 222222222, 'Rua B, 456', 'Rio de Janeiro', 20001-000),
+('Carlos', 'carlos@example.com', 333333333, 'Rua C, 789', 'Belo Horizonte', 30001-000),
+('Ana', 'ana@example.com', 444444444, 'Rua D, 101', 'Porto Alegre', 90001-000),
+('Pedro', 'pedro@example.com', 555555555, 'Rua E, 202', 'Curitiba', 80001-000);
 
 -- Criar a tabela de lanches
 CREATE TABLE lanches (
@@ -46,55 +65,27 @@ VALUES
 -- Criar a tabela de pedidos
 CREATE TABLE pedidos (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    cliente_nome VARCHAR(100) NOT NULL,
+    cliente_id INT,
+    lanche_id INT,
+    quantidade INT NOT NULL,
     total DECIMAL(10,2),
     forma_pagamento ENUM('Pix', 'Cartão de crédito', 'Boleto') NOT NULL,
-    cidade VARCHAR(250) NOT NULL,
-    endereco VARCHAR(250) NOT NULL,
-    cep VARCHAR(10) NOT NULL,
     data_pedido TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status_pedido ENUM('pendente', 'entregue') DEFAULT 'pendente'
-) DEFAULT CHARSET = utf8;
-
--- Criar a tabela intermediária para relacionar pedidos e lanches
-CREATE TABLE pedido_lanches (
-    pedido_id INT,
-    lanche_id INT,
-    quantidade INT DEFAULT 1,
-    PRIMARY KEY (pedido_id, lanche_id),
-    FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE,
-    FOREIGN KEY (lanche_id) REFERENCES lanches(id) ON DELETE CASCADE
+    status_pedido ENUM('pendente', 'entregue') DEFAULT 'pendente',
+    FOREIGN KEY (cliente_id) REFERENCES clientes(id),
+    FOREIGN KEY (lanche_id) REFERENCES lanches(id)
 ) DEFAULT CHARSET = utf8;
 
 -- Inserir pedidos de clientes
-INSERT INTO pedidos (cliente_nome, total, forma_pagamento, cidade, endereco, cep, status_pedido)
+INSERT INTO pedidos (cliente_id, lanche_id, quantidade, total, forma_pagamento, status_pedido)
 VALUES
-('João', 35.50, 'Pix', 'São Paulo', 'Rua A, 123', '01001-000', 'pendente'),
-('Maria', 27.90, 'Cartão de crédito', 'Rio de Janeiro', 'Rua B, 456', '20001-000', 'pendente'),
-('Carlos', 50.00, 'Pix', 'Belo Horizonte', 'Rua C, 789', '30001-000', 'pendente'),
-('Ana', 15.75, 'Boleto', 'Porto Alegre', 'Rua D, 101', '90001-000', 'pendente'),
-('Pedro', 22.40, 'Pix', 'Curitiba', 'Rua E, 202', '80001-000', 'pendente'),
-('Mariana', 80.00, 'Cartão de crédito', 'Salvador', 'Rua F, 303', '40001-000', 'entregue'),
-('Lucas', 45.30, 'Pix', 'Fortaleza', 'Rua G, 404', '60001-000', 'pendente'),
-('Julia', 60.50, 'Cartão de crédito', 'Manaus', 'Rua H, 505', '69001-000', 'pendente'),
-('Gabriel', 70.20, 'Boleto', 'Brasília', 'Rua I, 606', '70001-000', 'pendente'),
-('Larissa', 33.30, 'Cartão de crédito', 'Recife', 'Rua J, 707', '50001-000', 'pendente');
+(1, 1, 1, 17.00, 'Pix', 'pendente'), -- Pedido 1: João comprou 1 X-Burger
+(2, 4, 2, 20.00, 'Cartão de crédito', 'pendente'), -- Pedido 2: Maria comprou 2 Batata Frita Grande
+(3, 6, 3, 39.00, 'Pix', 'pendente'), -- Pedido 3: Carlos comprou 3 Açaí com Morango
+(4, 8, 2, 18.00, 'Boleto', 'pendente'), -- Pedido 4: Ana comprou 2 Batata Frita com Cheddar
+(5, 7, 1, 5.00, 'Pix', 'pendente'); -- Pedido 5: Pedro comprou 1 Guaraná Antarctica
 
--- Inserir itens nos pedidos
-INSERT INTO pedido_lanches (pedido_id, lanche_id, quantidade)
-VALUES
-(1, 1, 2),  -- João pediu 2 X-Burgers
-(1, 4, 1),  -- João também pediu 1 Batata Frita Grande
-(2, 7, 1),  -- Maria pediu 1 Guaraná Antarctica
-(2, 8, 1),  -- Maria também pediu 1 Batata Frita com Cheddar
-(3, 11, 1), -- Carlos pediu 1 Água Mineral
-(4, 5, 2),  -- Ana pediu 2 Double Cheeseburgers
-(5, 9, 1),  -- Pedro pediu 1 Hamburger de Frango
-(6, 15, 1), -- Mariana pediu 1 Açaí com Nutella
-(7, 3, 2),  -- Lucas pediu 2 Sucos de Laranja
-(8, 10, 1), -- Julia pediu 1 Açaí com Paçoca
-(9, 12, 1), -- Gabriel pediu 1 Batata Frita com Bacon
-(10, 14, 1); -- Larissa pediu 1 Açaí com Leite em Pó
+
 
 -- Listar todos os lanches
 SELECT * FROM lanches;
