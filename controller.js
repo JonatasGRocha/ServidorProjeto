@@ -13,7 +13,7 @@ app.get('/historico/:id', (req, res) => {
       pedidos.data_pedido,
       pedidos.status_pedido,
       lanches.titulo AS lanche_titulo,
-      lanches.preco AS lanche_preco,  -- Incluído o valor do lanche
+      lanches.preco AS lanche_preco,
       lanches.categoria AS lanche_categoria,
       lanches.descricao AS lanche_descricao
     FROM 
@@ -24,13 +24,6 @@ app.get('/historico/:id', (req, res) => {
       lanches ON pedido_lanches.lanche_id = lanches.id
     WHERE 
       pedidos.cliente_id = ?
-  `;
-
-  // Consulta para calcular o total dos pedidos
-  const totalPedidosQuery = `
-    SELECT SUM(total) AS total_pedidos 
-    FROM pedidos 
-    WHERE cliente_id = ?
   `;
 
   // Buscar detalhes dos pedidos e lanches
@@ -44,31 +37,20 @@ app.get('/historico/:id', (req, res) => {
       return res.status(404).json({ message: 'Nenhum pedido encontrado para este cliente' });
     }
 
-    // Calcular o total dos pedidos
-    connection.query(totalPedidosQuery, [clienteId], (err, totalResult) => {
-      if (err) {
-        console.error('Erro ao calcular o total dos pedidos:', err);
-        return res.status(500).json({ error: 'Erro interno do servidor' });
-      }
+    // Construir a resposta com os detalhes dos pedidos e lanches
+    const historicoArray = pedidosLanchesResult.map(pedido => ({
+      pedido_id: pedido.pedido_id,
+      forma_pagamento: pedido.forma_pagamento,
+      data_pedido: pedido.data_pedido,
+      status_pedido: pedido.status_pedido,
+      lanche_titulo: pedido.lanche_titulo,
+      lanche_preco: pedido.lanche_preco,
+      lanche_categoria: pedido.lanche_categoria,
+      lanche_descricao: pedido.lanche_descricao
+    }));
 
-      const totalPedidos = totalResult[0]?.total_pedidos || 0;
-
-      // Construir a resposta com os detalhes dos pedidos e lanches
-      const historicoArray = pedidosLanchesResult.map(pedido => ({
-        pedido_id: pedido.pedido_id,
-        forma_pagamento: pedido.forma_pagamento,
-        data_pedido: pedido.data_pedido,
-        status_pedido: pedido.status_pedido,
-        lanche_titulo: pedido.lanche_titulo,
-        lanche_preco: pedido.lanche_preco,  // Incluído o valor do lanche
-        lanche_categoria: pedido.lanche_categoria,
-        lanche_descricao: pedido.lanche_descricao
-      }));
-
-      res.status(200).json({
-        pedidos: historicoArray,
-        total_pedidos: totalPedidos
-      });
+    res.status(200).json({
+      pedidos: historicoArray
     });
   });
 });
