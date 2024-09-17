@@ -30,15 +30,34 @@ VALUES
 ('Pedro', 'pedro@example.com', 555555555, 'Rua E, 202', 'Curitiba', 80001-000);
 
 -- Criar a tabela de lanches
-CREATE TABLE lanches (
+CREATE TABLE IF NOT EXISTS lanches (
     id INT AUTO_INCREMENT PRIMARY KEY,
     titulo VARCHAR(250) NOT NULL,
-    preco DECIMAL(10,2) NOT NULL,
+    preco DECIMAL(10, 2) NOT NULL,
     categoria ENUM('Hamburguer', 'Açaí', 'Bebidas', 'Batata frita'),
     descricao VARCHAR(300)
 ) DEFAULT CHARSET = utf8;
 
--- Inserir produtos na tabela de lanches
+-- Criar a tabela de pedidos
+CREATE TABLE IF NOT EXISTS pedidos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    cliente_id INT,
+    total DECIMAL(10, 2),
+    forma_pagamento ENUM('Pix', 'Cartão de crédito', 'Boleto') NOT NULL,
+    data_pedido TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status_pedido ENUM('pendente', 'entregue') DEFAULT 'pendente',
+    FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+) DEFAULT CHARSET = utf8;
+
+-- Criar a tabela intermediária para relacionar pedidos e lanches, sem o campo quantidade
+CREATE TABLE IF NOT EXISTS pedido_lanches (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pedido_id INT,
+    lanche_id INT,
+    FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE,
+    FOREIGN KEY (lanche_id) REFERENCES lanches(id) ON DELETE CASCADE
+);
+
 INSERT INTO lanches (titulo, preco, categoria, descricao)
 VALUES
 ('X-Burger', 17.00, 'Hamburguer', 'Hamburger com queijo, bacon e maionese especial'),
@@ -62,31 +81,25 @@ VALUES
 ('Refrigerante de Limão', 5.00, 'Bebidas', 'Lata de refrigerante de limão 350ml'),
 ('Batata Frita com Alho', 9.50, 'Batata frita', 'Batata frita com alho frito');
 
--- Criar a tabela de pedidos
-CREATE TABLE pedidos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    cliente_id INT,
-    lanche_id INT,
-    quantidade INT NOT NULL,
-    total DECIMAL(10,2),
-    forma_pagamento ENUM('Pix', 'Cartão de crédito', 'Boleto') NOT NULL,
-    data_pedido TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status_pedido ENUM('pendente', 'entregue') DEFAULT 'pendente',
-    FOREIGN KEY (cliente_id) REFERENCES clientes(id),
-    FOREIGN KEY (lanche_id) REFERENCES lanches(id)
-) DEFAULT CHARSET = utf8;
-
--- Inserir pedidos de clientes
-INSERT INTO pedidos (cliente_id, lanche_id, quantidade, total, forma_pagamento, status_pedido)
+-- Inserir alguns pedidos na tabela de pedidos
+INSERT INTO pedidos (cliente_id, total, forma_pagamento, status_pedido)
 VALUES
-(1, 1, 1, 17.00, 'Pix', 'pendente'), -- Pedido 1: João comprou 1 X-Burger
-(2, 4, 2, 20.00, 'Cartão de crédito', 'pendente'), -- Pedido 2: Maria comprou 2 Batata Frita Grande
-(3, 6, 3, 39.00, 'Pix', 'pendente'), -- Pedido 3: Carlos comprou 3 Açaí com Morango
-(4, 8, 2, 18.00, 'Boleto', 'pendente'), -- Pedido 4: Ana comprou 2 Batata Frita com Cheddar
-(5, 7, 1, 5.00, 'Pix', 'pendente'); -- Pedido 5: Pedro comprou 1 Guaraná Antarctica
+(1, 17.00, 'Pix', 'pendente'), 
+(2, 20.00, 'Cartão de crédito', 'pendente'), 
+(3, 39.00, 'Pix', 'pendente'), 
+(4, 18.00, 'Boleto', 'pendente'), 
+(5, 5.00, 'Pix', 'pendente');
+
+-- Inserir os lanches relacionados aos pedidos na tabela de pedido_lanches, sem a quantidade
+INSERT INTO pedido_lanches (pedido_id, lanche_id)
+VALUES
+(1, 1), -- Pedido 1: João comprou 1 X-Burger
+(2, 4), -- Pedido 2: Maria comprou 1 Batata Frita Grande
+(3, 6), -- Pedido 3: Carlos comprou 1 Açaí com Morango
+(4, 5), -- Pedido 4: Ana comprou 1 Double Cheeseburger
+(5, 3); -- Pedido 5: Pedro comprou 1 Suco de Laranja
 
 SELECT COUNT(cliente_id) AS total_pedidos FROM pedidos WHERE cliente_id = 2;
-
 
 -- Listar todos os lanches
 SELECT * FROM lanches;
