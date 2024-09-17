@@ -1,271 +1,329 @@
 const{connection} = require ('./configBD')
 const{app} = require ('./app')
 
+// Histórico do cliente por ID, exibindo os pedidos e somando o total
 app.get('/historico/:id', (req, res) => {
   const clienteId = req.params.id;
 
-  // Consulta SQL para pegar todos os dados do cliente com base no ID, exceto o ID
-  const clienteQuery = 'SELECT nome, email, telefone, endereco, cidade, cep FROM clientes WHERE id = ?';
+  // Consulta para buscar os pedidos do cliente e os detalhes dos lanches
+  const pedidosLanchesQuery = `
+    SELECT 
+      pedidos.id AS pedido_id,
+      pedidos.forma_pagamento,
+      pedidos.data_pedido,
+      pedidos.status_pedido,
+      lanches.titulo AS lanche_titulo,
+      lanches.preco AS lanche_preco,  -- Incluído o valor do lanche
+      lanches.categoria AS lanche_categoria,
+      lanches.descricao AS lanche_descricao
+    FROM 
+      pedidos
+    JOIN 
+      pedido_lanches ON pedidos.id = pedido_lanches.pedido_id
+    JOIN 
+      lanches ON pedido_lanches.lanche_id = lanches.id
+    WHERE 
+      pedidos.cliente_id = ?
+  `;
 
-  // Consulta SQL para somar o número total de itens comprados pelo cliente
-  const itensQuery = 'SELECT SUM(quantidade) AS total_itens FROM pedidos WHERE cliente_id = ?';
-
-  // Consulta SQL para contar o número total de pedidos do cliente
-  const pedidosQuery = 'SELECT COUNT(*) AS total_pedidos FROM pedidos WHERE cliente_id = ?';
-
-  // Consulta SQL para buscar detalhes do primeiro pedido do cliente
-  const detalhesPedidosQuery = `
-    SELECT quantidade, total, forma_pagamento, data_pedido, status_pedido 
+  // Consulta para calcular o total dos pedidos
+  const totalPedidosQuery = `
+    SELECT SUM(total) AS total_pedidos 
     FROM pedidos 
-    WHERE cliente_id = ? LIMIT 1`;
+    WHERE cliente_id = ?
+  `;
 
-  // Executar a query do cliente
-  connection.query(clienteQuery, [clienteId], (err, clienteResult) => {
+  // Buscar detalhes dos pedidos e lanches
+  connection.query(pedidosLanchesQuery, [clienteId], (err, pedidosLanchesResult) => {
     if (err) {
-      console.error('Erro ao buscar cliente:', err);
-      return res.status(500).send('Erro interno do servidor');
+      console.error('Erro ao buscar detalhes dos pedidos:', err);
+      return res.status(500).json({ error: 'Erro interno do servidor' });
     }
 
-    // Verifica se o cliente foi encontrado
-    if (clienteResult.length === 0) {
-      return res.status(404).send('Cliente não encontrado');
+    if (pedidosLanchesResult.length === 0) {
+      return res.status(404).json({ message: 'Nenhum pedido encontrado para este cliente' });
     }
 
-    // Executar a query de soma dos itens
-    connection.query(itensQuery, [clienteId], (err, itensResult) => {
+    // Calcular o total dos pedidos
+    connection.query(totalPedidosQuery, [clienteId], (err, totalResult) => {
       if (err) {
-        console.error('Erro ao buscar itens:', err);
-        return res.status(500).send('Erro interno do servidor');
+        console.error('Erro ao calcular o total dos pedidos:', err);
+        return res.status(500).json({ error: 'Erro interno do servidor' });
       }
 
-      // Executar a query de contagem de pedidos
-      connection.query(pedidosQuery, [clienteId], (err, pedidosResult) => {
-        if (err) {
-          console.error('Erro ao contar pedidos:', err);
-          return res.status(500).send('Erro interno do servidor');
-        }
+      const totalPedidos = totalResult[0]?.total_pedidos || 0;
 
-        // Executar a query de detalhes do primeiro pedido
-        connection.query(detalhesPedidosQuery, [clienteId], (err, detalhesPedidosResult) => {
-          if (err) {
-            console.error('Erro ao buscar detalhes dos pedidos:', err);
-            return res.status(500).send('Erro interno do servidor');
-          }
+      // Construir a resposta com os detalhes dos pedidos e lanches
+      const historicoArray = pedidosLanchesResult.map(pedido => ({
+        pedido_id: pedido.pedido_id,
+        forma_pagamento: pedido.forma_pagamento,
+        data_pedido: pedido.data_pedido,
+        status_pedido: pedido.status_pedido,
+        lanche_titulo: pedido.lanche_titulo,
+        lanche_preco: pedido.lanche_preco,  // Incluído o valor do lanche
+        lanche_categoria: pedido.lanche_categoria,
+        lanche_descricao: pedido.lanche_descricao
+      }));
 
-          // Combina os resultados e organiza a resposta JSON
-          const clienteInfo = clienteResult[0]; // Informações do cliente
-          const pedidos_realizados = pedidosResult[0].total_pedidos; // Total de pedidos
-          const detalhesPedido = detalhesPedidosResult[0] || {}; // Detalhes do primeiro pedido, se houver
-
-          // Organiza os dados do cliente e inclui o primeiro pedido diretamente
-          res.json({
-            historico_do_pedido: {
-              ...clienteInfo, // Dados do cliente
-              quantidade: detalhesPedido.quantidade || null, // Quantidade do pedido
-              total: detalhesPedido.total || null, // Total do pedido
-              forma_pagamento: detalhesPedido.forma_pagamento || null, // Forma de pagamento do pedido
-              data_pedido: detalhesPedido.data_pedido || null, // Data do pedido
-              status_pedido: detalhesPedido.status_pedido || null, // Status do pedido
-              cep: clienteInfo.cep, // CEP
-              pedidos_realizados: pedidos_realizados // Número total de pedidos
-            }
-          });
-        });
+      res.status(200).json({
+        pedidos: historicoArray,
+        total_pedidos: totalPedidos
       });
     });
   });
 });
- 
-//Rodando perfeitamente, só n pega numero INT//
+
 app.get('/pesquisar/:termo', (req, res) => {
-  const searchTerm = req.params.termo; // Obtém o termo de pesquisa a partir da URL
+  const searchTerm = req.params.termo;
 
   if (!searchTerm) {
-    return res.status(400).send('Termo de pesquisa é necessário');
+    return res.status(400).json({ error: 'Termo de pesquisa é necessário' });
   }
 
-  // Verifica se o termo é um número inteiro
   const isNumber = /^\d+$/.test(searchTerm);
   const searchValue = `%${searchTerm}%`;
 
-  // Função para pesquisar em uma única consulta SQL nos campos desejados
   let query;
   let queryParams;
 
   if (isNumber) {
-    // Se o termo for um número, procura em campos numéricos
-    query = `
-      SELECT forma_pagamento AS info FROM pedidos WHERE forma_pagamento LIKE ?
-      UNION
-      SELECT status_pedido AS info FROM pedidos WHERE status_pedido LIKE ?;
-    `;
-    queryParams = Array(2).fill(searchValue);
+    query = `SELECT * FROM lanches WHERE preco LIKE ?;`;
+    queryParams = [searchValue];
   } else {
-    // Se o termo for texto, pesquisa em campos de texto
     query = `
-      SELECT nome AS info FROM clientes WHERE nome LIKE ?
+      SELECT * FROM lanches WHERE titulo LIKE ?
       UNION
-      SELECT email AS info FROM clientes WHERE email LIKE ?
-      UNION
-      SELECT endereco AS info FROM clientes WHERE endereco LIKE ?
-      UNION
-      SELECT cidade AS info FROM clientes WHERE cidade LIKE ?
-      UNION
-      SELECT titulo AS info FROM lanches WHERE titulo LIKE ?
-      UNION
-      SELECT descricao AS info FROM lanches WHERE descricao LIKE ?
-      UNION
-      SELECT forma_pagamento AS info FROM pedidos WHERE forma_pagamento LIKE ?
-      UNION
-      SELECT status_pedido AS info FROM pedidos WHERE status_pedido LIKE ?;
+      SELECT * FROM lanches WHERE descricao LIKE ?;
     `;
-    queryParams = Array(8).fill(searchValue);
+    queryParams = [searchValue, searchValue];
   }
 
   connection.query(query, queryParams, (err, rows) => {
     if (err) {
       console.error('Erro ao executar a consulta:', err);
-      return res.status(500).send('Erro interno do servidor');
+      return res.status(500).json({ error: 'Erro interno do servidor' });
     }
 
     if (rows.length === 0) {
-      return res.status(404).send('Nenhum resultado encontrado');
+      return res.status(404).json({ message: 'Nenhum resultado encontrado' });
     }
 
-    // Envia apenas os resultados encontrados, sem campos adicionais
-    res.json(rows.map(row => row.info));
+    res.status(200).json(rows);
   });
 });
 
 app.get('/pedidos', (req, res) => {
   const query = `
-    SELECT pedidos.id, clientes.nome, clientes.email, clientes.telefone, 
-           lanches.titulo, pedidos.quantidade, pedidos.total, 
-           pedidos.forma_pagamento, pedidos.data_pedido, pedidos.status_pedido
-    FROM pedidos
-    JOIN clientes ON pedidos.cliente_id = clientes.id
-    JOIN lanches ON pedidos.lanche_id = lanches.id
+    SELECT 
+      p.id AS pedido_id, 
+      p.cliente_id, 
+      p.total, 
+      p.forma_pagamento, 
+      p.data_pedido, 
+      p.status_pedido,
+      l.id AS lanche_id, 
+      l.titulo AS lanche_titulo, 
+      l.preco AS lanche_preco, 
+      l.categoria AS lanche_categoria, 
+      l.descricao AS lanche_descricao
+    FROM pedidos p
+    LEFT JOIN pedido_lanches pl ON p.id = pl.pedido_id
+    LEFT JOIN lanches l ON pl.lanche_id = l.id
   `;
-  
+
   connection.query(query, (err, rows) => {
     if (err) {
       console.error('Erro ao executar a consulta:', err);
-      res.status(500).send('Erro interno do servidor');
-      return;
+      return res.status(500).json({ error: 'Erro interno do servidor' });
     }
-    res.json(rows);
+
+    const pedidosMap = {};
+
+    rows.forEach(row => {
+      const { pedido_id, cliente_id, total, forma_pagamento, data_pedido, status_pedido, lanche_id, lanche_titulo, lanche_preco, lanche_categoria, lanche_descricao } = row;
+
+      if (!pedidosMap[pedido_id]) {
+        pedidosMap[pedido_id] = {
+          pedido_id,
+          cliente_id,
+          total,
+          forma_pagamento,
+          data_pedido,
+          status_pedido,
+          lanches: []
+        };
+      }
+
+      if (lanche_id) {
+        pedidosMap[pedido_id].lanches.push({
+          lanche_id,
+          lanche_titulo,
+          lanche_preco,
+          lanche_categoria,
+          lanche_descricao
+        });
+      }
+    });
+
+    const pedidosArray = Object.values(pedidosMap);
+
+    res.status(200).json(pedidosArray);
   });
 });
 
 app.get('/pedidos/:id', (req, res) => {
   const pedidoId = req.params.id;
   const query = `
-    SELECT pedidos.id, clientes.nome, clientes.email, clientes.telefone, 
-           clientes.endereco, clientes.cidade, clientes.cep,
-           lanches.titulo, pedidos.quantidade, pedidos.total, 
-           pedidos.forma_pagamento, pedidos.data_pedido, pedidos.status_pedido
-    FROM pedidos
-    JOIN clientes ON pedidos.cliente_id = clientes.id
-    JOIN lanches ON pedidos.lanche_id = lanches.id
-    WHERE pedidos.id = ?
+    SELECT 
+      p.id AS pedido_id, 
+      p.cliente_id, 
+      p.total, 
+      p.forma_pagamento, 
+      p.data_pedido, 
+      p.status_pedido,
+      l.id AS lanche_id, 
+      l.titulo AS lanche_titulo, 
+      l.preco AS lanche_preco, 
+      l.categoria AS lanche_categoria, 
+      l.descricao AS lanche_descricao
+    FROM pedidos p
+    LEFT JOIN pedido_lanches pl ON p.id = pl.pedido_id
+    LEFT JOIN lanches l ON pl.lanche_id = l.id
+    WHERE p.id = ?
   `;
-  
+
   connection.query(query, [pedidoId], (err, rows) => {
     if (err) {
       console.error('Erro ao executar a consulta:', err);
-      res.status(500).send('Erro interno do servidor');
-      return;
+      return res.status(500).json({ error: 'Erro interno do servidor' });
     }
+
     if (rows.length === 0) {
-      res.status(404).send('Pedido não encontrado');
-      return;
+      return res.status(404).json({ message: 'Pedido não encontrado' });
     }
-    res.json(rows[0]);
+
+    const pedido = {
+      pedido_id: rows[0].pedido_id,
+      cliente_id: rows[0].cliente_id,
+      total: rows[0].total,
+      forma_pagamento: rows[0].forma_pagamento,
+      data_pedido: rows[0].data_pedido,
+      status_pedido: rows[0].status_pedido,
+      lanches: []
+    };
+
+    rows.forEach(row => {
+      const { lanche_id, lanche_titulo, lanche_preco, lanche_categoria, lanche_descricao } = row;
+      if (lanche_id) {
+        pedido.lanches.push({
+          lanche_id,
+          lanche_titulo,
+          lanche_preco,
+          lanche_categoria,
+          lanche_descricao
+        });
+      }
+    });
+
+    res.status(200).json(pedido);
   });
 });
 
-
+// Listar todos os lanches
 app.get('/lanches', (req, res) => {
   connection.query('SELECT * FROM lanches', (err, rows) => {
     if (err) {
       console.error('Erro ao executar a consulta:', err);
-      res.status(500).send('Erro interno do servidor');
-      return;
+      return res.status(500).json({ error: 'Erro interno do servidor' });
     }
-    res.json(rows);
+
+    res.status(200).json(rows);
   });
 });
 
+// Listar lanche específico por ID
 app.get('/lanches/:id', (req, res) => {
   const lancheId = req.params.id;
   connection.query('SELECT * FROM lanches WHERE id = ?', [lancheId], (err, rows) => {
     if (err) {
       console.error('Erro ao executar a consulta:', err);
-      res.status(500).send('Erro interno do servidor');
-      return;
+      return res.status(500).json({ error: 'Erro interno do servidor' });
     }
+
     if (rows.length === 0) {
-      res.status(404).send('Lanche não encontrado');
-      return;
+      return res.status(404).json({ message: 'Lanche não encontrado' });
     }
-    res.json(rows[0]);
+
+    res.status(200).json(rows[0]);
   });
 });
 
+// Inserir um novo pedido
 app.post('/pedidos', (req, res) => {
-  const { cliente_id, lanche_id, quantidade, forma_pagamento } = req.body;
-  const query = `
-    INSERT INTO pedidos (cliente_id, lanche_id, quantidade, total, forma_pagamento, status_pedido)
-    SELECT ?, ?, ?, lanches.preco * ?, ?, 'pendente'
-    FROM lanches
-    WHERE id = ?
+  const { cliente_id, lanches, forma_pagamento } = req.body; // Agora 'lanches' é um array de lanche_ids
+
+  if (!lanches || lanches.length === 0) {
+    return res.status(400).json({ error: 'É necessário fornecer pelo menos um lanche' });
+  }
+
+  // Obter os preços dos lanches e calcular o total
+  const lancheIds = lanches; // O array agora contém apenas os IDs dos lanches
+
+  const lanchesQuery = `
+    SELECT id, preco FROM lanches WHERE id IN (?)
   `;
 
-  connection.query(query, [cliente_id, lanche_id, quantidade, quantidade, forma_pagamento, lanche_id], (err, result) => {
+  connection.query(lanchesQuery, [lancheIds], (err, lancheResults) => {
     if (err) {
-      console.error('Erro ao inserir pedido:', err);
-      res.status(500).send('Erro interno do servidor');
-      return;
+      console.error('Erro ao buscar lanches:', err);
+      return res.status(500).json({ error: 'Erro interno do servidor' });
     }
-    res.status(201).send('Pedido adicionado com sucesso');
+
+    if (lancheResults.length !== lanches.length) {
+      return res.status(400).json({ error: 'Um ou mais lanches não foram encontrados' });
+    }
+
+    // Calcular o total do pedido
+    let totalPedido = 0;
+    lancheResults.forEach(lanche => {
+      totalPedido += lanche.preco;
+    });
+
+    // Inserir o pedido na tabela 'pedidos'
+    const pedidoQuery = `
+      INSERT INTO pedidos (cliente_id, total, forma_pagamento, status_pedido)
+      VALUES (?, ?, ?, 'pendente')
+    `;
+
+    connection.query(pedidoQuery, [cliente_id, totalPedido, forma_pagamento], (err, result) => {
+      if (err) {
+        console.error('Erro ao inserir pedido:', err);
+        return res.status(500).json({ error: 'Erro interno do servidor' });
+      }
+
+      const pedidoId = result.insertId;
+
+      // Inserir os lanches do pedido na tabela 'pedido_lanches'
+      const pedidoLanchesQuery = `
+        INSERT INTO pedido_lanches (pedido_id, lanche_id)
+        VALUES ?
+      `;
+
+      const pedidoLanchesValues = lanches.map(lancheId => [pedidoId, lancheId]);
+
+      connection.query(pedidoLanchesQuery, [pedidoLanchesValues], (err) => {
+        if (err) {
+          console.error('Erro ao inserir lanches do pedido:', err);
+          return res.status(500).json({ error: 'Erro interno do servidor' });
+        }
+
+        res.status(201).json({ message: 'Pedido adicionado com sucesso', pedido_id: pedidoId });
+      });
+    });
   });
 });
 
-app.post('/filtro', (req, res) => {
-  const conditions = [];
-  const params = [];
-
-  const addCondition = (column, value, operator = '=') => {
-    if (value !== undefined && value !== null) {
-      conditions.push(`${column} ${operator} ?`);
-      params.push(value);
-    }
-  };
-
-  addCondition('lanches.categoria', req.body.categoria);
-  addCondition('lanches.preco', req.body.preco, '<=');
-  addCondition('pedidos.status_pedido', req.body.status_pedido);
-  addCondition('clientes.nome', req.body.cliente_nome && `%${req.body.cliente_nome}%`, 'LIKE');
-  addCondition('pedidos.forma_pagamento', req.body.forma_pagamento);
-  addCondition('clientes.cidade', req.body.cidade && `%${req.body.cidade}%`, 'LIKE');
-  addCondition('clientes.endereco', req.body.endereco && `%${req.body.endereco}%`, 'LIKE');
-  addCondition('lanches.titulo', req.body.titulo && `%${req.body.titulo}%`, 'LIKE');
-
-  const query = `
-    SELECT lanches.*, pedidos.*, clientes.nome, clientes.email, clientes.telefone
-    FROM lanches
-    INNER JOIN pedidos ON lanches.id = pedidos.lanche_id
-    INNER JOIN clientes ON pedidos.cliente_id = clientes.id
-    WHERE ${conditions.length ? conditions.join(' AND ') : '1=1'}
-  `;
-
-  connection.query(query, params, (err, rows) => {
-    if (err) return res.status(500).send('Erro interno do servidor');
-    if (!rows.length) return res.status(404).send('Nenhum resultado encontrado');
-    res.json(rows);
-  });
-});
-
+// Atualizar status do pedido
 app.put('/statusPedido/:id', (req, res) => {
   const statusPedidoId = req.params.id;
   const { status_pedido } = req.body;
@@ -275,22 +333,22 @@ app.put('/statusPedido/:id', (req, res) => {
     [status_pedido, statusPedidoId],
     (err, result) => {
       if (err) {
-        console.error('Erro ao executar a atualização do status do pedido:', err);
-        res.status(500).send('Erro interno do servidor');
-        return;
+        console.error('Erro ao atualizar o status do pedido:', err);
+        return res.status(500).json({ error: 'Erro interno do servidor' });
       }
 
       if (result.affectedRows === 0) {
-        res.status(404).send('Nenhum pedido encontrado');
-        return;
+        return res.status(404).json({ message: 'Nenhum pedido encontrado' });
       }
 
-      res.status(200).send('Status do pedido atualizado com sucesso');
+      res.status(200).json({ message: 'Status do pedido atualizado com sucesso' });
     }
   );
 });
 
+// Página não encontrada
 app.get('*', (req, res) => {
-  res.status(404).send('Página não encontrada');
+  res.status(404).json({ error: 'Página não encontrada' });
 });
+
   
