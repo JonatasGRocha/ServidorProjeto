@@ -1,6 +1,7 @@
 const express = require('express');
 const { connection } = require('./configBD');
 const {
+  homeRoute,
   getHistorico,
   searchLanches,
   getPedidos,
@@ -17,6 +18,7 @@ const port = 3000;
 app.use(express.json()); // Para fazer parsing de JSON no corpo da requisição
 
 // Rotas
+app.get('/', homeRoute);
 app.get('/historico/:id', getHistorico(connection));
 app.get('/pesquisar/:termo', searchLanches(connection));
 app.get('/pedidos', getPedidos(connection));

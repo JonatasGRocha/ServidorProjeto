@@ -2,6 +2,12 @@
 
 const { connection } = require('./configBD');
 
+//Função para rota '/'
+const homeRoute = (req, res) => {
+  res.send ('Lanchonete Online!')
+}
+
+
 // Função para obter o histórico do cliente
 function getHistorico(connection) {
   return (req, res) => {
@@ -229,11 +235,11 @@ function insertPedido(connection) {
     connection.query(lanchesQuery, [lancheIds], (err, lancheResults) => {
       if (err) return res.status(500).json({ error: 'Erro interno do servidor' });
 
-      if (lancheResults.length !== lanches.length) return res.status(400).json({ error: 'Um ou mais lanches não foram encontrados' });
+      if (lancheResults.length !== new Set(lanches).size) return res.status(400).json({ error: 'Um ou mais lanches não foram encontrados' });
 
       let totalPedido = 0;
       lancheResults.forEach(lanche => {
-        totalPedido += lanche.preco;
+        totalPedido += lanche.preco * lanches.filter(id => id === lanche.id).length; // Contabiliza lanches repetidos
       });
 
       const pedidoQuery = `
@@ -279,6 +285,7 @@ function updateStatusPedido(connection) {
 }
 
 module.exports = {
+  homeRoute,
   getHistorico,
   searchLanches,
   getPedidos,
