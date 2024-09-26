@@ -99,6 +99,28 @@ VALUES
 (4, 5), -- Pedido 4: Ana comprou 1 Double Cheeseburger
 (5, 3); -- Pedido 5: Pedro comprou 1 Suco de Laranja
 
+ALTER TABLE lanches ADD COLUMN imagem VARCHAR(255);
+
+UPDATE lanches SET imagem = '/assets/images/Rectangle 89 (1).png' WHERE id = 1;
+UPDATE lanches SET imagem = '/assets/images/Rectangle 89 (2).png' WHERE id = 2;
+UPDATE lanches SET imagem = '/assets/images/laranja.jpg' WHERE id = 3;
+UPDATE lanches SET imagem = '/assets/images/batata-frita.jpg' WHERE id = 4;
+UPDATE lanches SET imagem = '/assets/images/laranja.jpg' WHERE id = 5;
+UPDATE lanches SET imagem = '/assets/images/Rectangle 89 (2).png' WHERE id = 6;
+UPDATE lanches SET imagem = '/assets/images/laranja.jpg' WHERE id = 7;
+UPDATE lanches SET imagem = '/assets/images/batata-frita.jpg' WHERE id = 8;
+UPDATE lanches SET imagem = '/assets/images/laranja.jpg' WHERE id = 9;
+UPDATE lanches SET imagem = '/assets/images/Rectangle 89 (2).png' WHERE id = 10;
+UPDATE lanches SET imagem = '/assets/images/laranja.jpg' WHERE id = 11;
+UPDATE lanches SET imagem = '/assets/images/batata-frita.jpg' WHERE id = 12;
+UPDATE lanches SET imagem = '/assets/images/laranja.jpg' WHERE id = 13;
+UPDATE lanches SET imagem = '/assets/images/Rectangle 89 (2).png' WHERE id = 14;
+UPDATE lanches SET imagem = '/assets/images/laranja.jpg' WHERE id = 15;
+UPDATE lanches SET imagem = '/assets/images/batata-frita.jpg' WHERE id = 16;
+UPDATE lanches SET imagem = '/assets/images/laranja.jpg' WHERE id = 17;
+UPDATE lanches SET imagem = '/assets/images/Rectangle 89 (2).png' WHERE id = 18;
+
+
 SELECT COUNT(cliente_id) AS total_pedidos FROM pedidos WHERE cliente_id = 2;
 
 -- Listar todos os lanches
