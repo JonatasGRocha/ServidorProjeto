@@ -1,14 +1,8 @@
-// utils.js
-
-const { connection } = require('./configBD');
-
-//Função para rota '/'
+// Função para rota '/'
 const homeRoute = (req, res) => {
-  res.send ('Lanchonete Online!')
+  res.send('Lanchonete Online!');
 }
 
-
-// Função para obter o histórico do cliente
 function getHistorico(connection) {
   return (req, res) => {
     const clienteId = req.params.id;
