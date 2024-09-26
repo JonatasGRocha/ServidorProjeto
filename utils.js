@@ -16,7 +16,8 @@ function getHistorico(connection) {
         lanches.titulo AS lanche_titulo,
         lanches.preco AS lanche_preco,
         lanches.categoria AS lanche_categoria,
-        lanches.descricao AS lanche_descricao
+        lanches.descricao AS lanche_descricao,
+        lanches.imagem AS lanche_imagem
       FROM 
         pedidos
       JOIN 
@@ -28,24 +29,49 @@ function getHistorico(connection) {
     `;
 
     connection.query(pedidosLanchesQuery, [clienteId], (err, pedidosLanchesResult) => {
-      if (err) return res.status(500).json({ error: 'Erro interno do servidor' });
-      if (pedidosLanchesResult.length === 0) return res.status(404).json({ message: 'Nenhum pedido encontrado para este cliente' });
+      if (err) {
+        return res.status(500).json({ error: 'Erro interno do servidor' });
+      }
+      if (pedidosLanchesResult.length === 0) {
+        return res.status(404).json({ message: 'Nenhum pedido encontrado para este cliente' });
+      }
 
-      const historicoArray = pedidosLanchesResult.map(pedido => ({
-        pedido_id: pedido.pedido_id,
-        forma_pagamento: pedido.forma_pagamento,
-        data_pedido: pedido.data_pedido,
-        status_pedido: pedido.status_pedido,
-        lanche_titulo: pedido.lanche_titulo,
-        lanche_preco: pedido.lanche_preco,
-        lanche_categoria: pedido.lanche_categoria,
-        lanche_descricao: pedido.lanche_descricao
-      }));
+      // Estruturar os resultados para agrupar os lanches por pedido
+      const historicoMap = {};
+
+      pedidosLanchesResult.forEach(pedido => {
+        const pedidoId = pedido.pedido_id;
+
+        // Se o pedido não estiver no histórico, adiciona
+        if (!historicoMap[pedidoId]) {
+          historicoMap[pedidoId] = {
+            pedido_id: pedidoId,
+            forma_pagamento: pedido.forma_pagamento,
+            data_pedido: pedido.data_pedido,
+            status_pedido: pedido.status_pedido,
+            lanches: [] // Inicializa um array para os lanches
+          };
+        }
+
+        // Adiciona o lanche ao array de lanches do pedido
+        historicoMap[pedidoId].lanches.push({
+          titulo: pedido.lanche_titulo,
+          preco: pedido.lanche_preco,
+          categoria: pedido.lanche_categoria,
+          descricao: pedido.lanche_descricao,
+          imagem: pedido.lanche_imagem
+        });
+      });
+
+      // Converte o objeto para um array
+      const historicoArray = Object.values(historicoMap);
 
       res.status(200).json({ pedidos: historicoArray });
     });
   };
 }
+
+
 
 // Função para buscar lanches
 function searchLanches(connection) {
