@@ -304,6 +304,30 @@ function updateStatusPedido(connection) {
   };
 }
 
+function getLanchesByCategoria(connection) {
+  return (req, res) => {
+    const { categoria } = req.query; // Obtém a categoria da query string
+
+    const query = `
+      SELECT * FROM lanches WHERE categoria = ?
+    `;
+    connection.query(query, [categoria], (err, results) => {
+      if (err) {
+        console.error(err); // Log do erro
+        return res.status(500).json({ error: 'Erro interno do servidor' });
+      }
+
+      if (results.length === 0) {
+        return res.status(404).json({ message: 'Nenhum lanche encontrado para essa categoria' });
+      }
+
+      res.status(200).json(results); // Retorna os resultados
+    });
+  };
+}
+
+
+
 module.exports = {
   homeRoute,
   getHistorico,
@@ -313,5 +337,6 @@ module.exports = {
   getLanches,
   getLancheById,
   insertPedido,
-  updateStatusPedido
+  updateStatusPedido,
+  getLanchesByCategoria
 };

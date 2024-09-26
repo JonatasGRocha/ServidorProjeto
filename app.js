@@ -10,7 +10,8 @@ const {
   getLanches,
   getLancheById,
   insertPedido,
-  updateStatusPedido
+  updateStatusPedido,
+  getLanchesByCategoria
 } = require('./utils');
 
 const app = express();
@@ -30,6 +31,7 @@ app.get('/lanches', getLanches(connection));
 app.get('/lanches/:id', getLancheById(connection));
 app.post('/pedidos', insertPedido(connection));
 app.put('/statusPedido/:id', updateStatusPedido(connection));
+app.get('/lanchesCategoria', getLanchesByCategoria(connection));
 
 // Página não encontrada
 app.use((req, res) => {
