@@ -11,7 +11,7 @@ const {
   getLancheById,
   insertPedido,
   updateStatusPedido,
-  getLanchesByCategoria
+  getLanchesByCategoria,
 } = require('./utils');
 
 const app = express();

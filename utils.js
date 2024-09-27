@@ -243,48 +243,35 @@ function getLancheById(connection) {
 // Função para inserir um novo pedido
 function insertPedido(connection) {
   return (req, res) => {
-    const { cliente_id, lanches, forma_pagamento } = req.body;
+      const { cliente_id, lanches, forma_pagamento } = req.body;
 
-    if (!lanches || lanches.length === 0) return res.status(400).json({ error: 'É necessário fornecer pelo menos um lanche' });
+      if (!cliente_id || !lanches || lanches.length === 0 || !forma_pagamento) {
+          return res.status(400).json({ message: 'Dados incompletos para o pedido.' });
+      }
 
-    const lancheIds = lanches;
+      let queryPedido = `INSERT INTO pedidos (cliente_id, forma_pagamento) VALUES (?, ?)`;
+      connection.query(queryPedido, [cliente_id, forma_pagamento], (error, results) => {
+          if (error) {
+              return res.status(500).json({ message: 'Erro ao criar o pedido.' });
+          }
+          const pedido_id = results.insertId;
 
-    const lanchesQuery = `
-      SELECT id, preco FROM lanches WHERE id IN (?)
-    `;
-    connection.query(lanchesQuery, [lancheIds], (err, lancheResults) => {
-      if (err) return res.status(500).json({ error: 'Erro interno do servidor' });
+          let queryLanchePedido = 'INSERT INTO itens_pedidos (pedido_id, lanche_id) VALUES ?';
+          let values = lanches.map(lanche_id => [pedido_id, lanche_id]);
 
-      if (lancheResults.length !== new Set(lanches).size) return res.status(400).json({ error: 'Um ou mais lanches não foram encontrados' });
-
-      let totalPedido = 0;
-      lancheResults.forEach(lanche => {
-        totalPedido += lanche.preco * lanches.filter(id => id === lanche.id).length; // Contabiliza lanches repetidos
+          connection.query(queryLanchePedido, [values], (err) => {
+              if (err) {
+                  return res.status(500).json({ message: 'Erro ao adicionar lanches ao pedido.' });
+              }
+              res.status(200).json({ message: 'Pedido adicionado com sucesso' });
+          });
       });
-
-      const pedidoQuery = `
-        INSERT INTO pedidos (cliente_id, total, forma_pagamento, status_pedido)
-        VALUES (?, ?, ?, 'pendente')
-      `;
-      connection.query(pedidoQuery, [cliente_id, totalPedido, forma_pagamento], (err, result) => {
-        if (err) return res.status(500).json({ error: 'Erro interno do servidor' });
-
-        const pedidoId = result.insertId;
-
-        const pedidoLanchesQuery = `
-          INSERT INTO pedido_lanches (pedido_id, lanche_id)
-          VALUES ?
-        `;
-        const pedidoLanchesValues = lanches.map(lancheId => [pedidoId, lancheId]);
-
-        connection.query(pedidoLanchesQuery, [pedidoLanchesValues], (err) => {
-          if (err) return res.status(500).json({ error: 'Erro interno do servidor' });
-          res.status(201).json({ message: 'Pedido adicionado com sucesso', pedido_id: pedidoId });
-        });
-      });
-    });
   };
 }
+
+module.exports = insertPedido;
+
+
 
 // Função para atualizar o status do pedido
 function updateStatusPedido(connection) {
@@ -327,7 +314,6 @@ function getLanchesByCategoria(connection) {
 }
 
 
-
 module.exports = {
   homeRoute,
   getHistorico,
@@ -338,5 +324,5 @@ module.exports = {
   getLancheById,
   insertPedido,
   updateStatusPedido,
-  getLanchesByCategoria
+  getLanchesByCategoria,
 };
