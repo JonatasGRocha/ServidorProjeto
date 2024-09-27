@@ -101,9 +101,11 @@ function searchLanches(connection) {
     connection.query(query, queryParams, (err, rows) => {
       if (err) return res.status(500).json({ error: 'Erro interno do servidor' });
       if (rows.length === 0) return res.status(404).json({ message: 'Nenhum resultado encontrado' });
-
+    
+      console.log('Dados retornados do MySQL:', rows); // Adiciona um log para depurar os dados do banco
       res.status(200).json(rows);
     });
+    
   };
 }
 

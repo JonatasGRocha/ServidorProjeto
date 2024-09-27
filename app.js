@@ -24,7 +24,7 @@ app.use(express.static('components')); // Servindo arquivos estáticos
 // Rotas
 app.get('/', homeRoute);
 app.get('/historico/:id', getHistorico(connection));
-app.get('/pesquisar/:termo', searchLanches(connection));
+app.get('/lanches/search/:termo', (req, res) => searchLanches(connection)(req, res));
 app.get('/pedidos', getPedidos(connection));
 app.get('/pedidos/:id', getPedidoById(connection));
 app.get('/lanches', getLanches(connection));
