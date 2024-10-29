@@ -245,21 +245,23 @@ function getLancheById(connection) {
 // Função para inserir um novo pedido
 function insertPedido(connection) {
   return (req, res) => {
-      const { cliente_id, lanches, forma_pagamento } = req.body;
+      const { cliente_id, lanches, forma_pagamento, total } = req.body;
 
       if (!cliente_id || !lanches || lanches.length === 0 || !forma_pagamento) {
           return res.status(400).json({ message: 'Dados incompletos para o pedido.' });
       }
 
-      let queryPedido = `INSERT INTO pedidos (cliente_id, forma_pagamento) VALUES (?, ?)`;
-      connection.query(queryPedido, [cliente_id, forma_pagamento], (error, results) => {
+      // Insere o pedido na tabela de pedidos
+      let queryPedido = `INSERT INTO pedidos (cliente_id, total, forma_pagamento) VALUES (?, ?, ?)`;
+      connection.query(queryPedido, [cliente_id, total, forma_pagamento], (error, results) => {
           if (error) {
               return res.status(500).json({ message: 'Erro ao criar o pedido.' });
           }
           const pedido_id = results.insertId;
 
-          let queryLanchePedido = 'INSERT INTO itens_pedidos (pedido_id, lanche_id) VALUES ?';
-          let values = lanches.map(lanche_id => [pedido_id, lanche_id]);
+          // Insere os itens de lanche na tabela intermediária
+          let queryLanchePedido = 'INSERT INTO pedido_lanches (pedido_id, lanche_id) VALUES ?';
+          let values = lanches.map(lanche => [pedido_id, lanche.id]);
 
           connection.query(queryLanchePedido, [values], (err) => {
               if (err) {
