@@ -242,36 +242,65 @@ function getLancheById(connection) {
   };
 }
 
-// Função para inserir um novo pedido
 function insertPedido(connection) {
   return (req, res) => {
-      const { cliente_id, lanches, forma_pagamento, total } = req.body;
+    const { cliente_id, lanches, forma_pagamento, total, nome_titular, numero_cartao, validade_cartao, cvv } = req.body;
 
-      if (!cliente_id || !lanches || lanches.length === 0 || !forma_pagamento) {
-          return res.status(400).json({ message: 'Dados incompletos para o pedido.' });
+    // Validação dos dados necessários
+    if (!cliente_id || !lanches || lanches.length === 0 || !forma_pagamento) {
+      return res.status(400).json({ message: 'Dados incompletos para o pedido.' });
+    }
+
+    // Convertendo a forma de pagamento para o formato que o banco de dados espera
+    const formaPagamentoBanco = forma_pagamento === 'cartao' ? 'Cartão de crédito' : forma_pagamento === 'pix' ? 'Pix' : null;
+
+    if (!formaPagamentoBanco) {
+      return res.status(400).json({ message: 'Método de pagamento inválido.' });
+    }
+
+    // Prepare a consulta para inserir o pedido
+    let queryPedido = `INSERT INTO pedidos (cliente_id, total, forma_pagamento` + 
+                      (formaPagamentoBanco === 'Cartão de crédito' ? ', nome_titular, numero_cartao, validade_cartao, cvv' : '') + 
+                      `) VALUES (?, ?, ?` + 
+                      (formaPagamentoBanco === 'Cartão de crédito' ? ', ?, ?, ?, ?' : '') + `)`; 
+
+    const values = [cliente_id, total, formaPagamentoBanco];
+
+    // Adiciona os dados do cartão apenas se a forma de pagamento for Cartão de crédito
+    if (formaPagamentoBanco === 'Cartão de crédito') {
+      // Validação dos dados do cartão
+      if (!nome_titular || !numero_cartao || !validade_cartao || !cvv) {
+        return res.status(400).json({ message: 'Dados incompletos do cartão.' });
       }
+      values.push(nome_titular, numero_cartao, validade_cartao, cvv);
+    } else {
+      // Para Pix, não precisa adicionar dados do cartão
+      values.push(null, null, null, null); // Adiciona valores nulos para campos do cartão
+    }
 
-      // Insere o pedido na tabela de pedidos
-      let queryPedido = `INSERT INTO pedidos (cliente_id, total, forma_pagamento) VALUES (?, ?, ?)`;
-      connection.query(queryPedido, [cliente_id, total, forma_pagamento], (error, results) => {
-          if (error) {
-              return res.status(500).json({ message: 'Erro ao criar o pedido.' });
-          }
-          const pedido_id = results.insertId;
+    // Executa a consulta para inserir o pedido
+    connection.query(queryPedido, values, (error, results) => {
+      if (error) {
+        console.error('Erro ao criar o pedido:', error); // Log do erro para facilitar o debugging
+        return res.status(500).json({ message: 'Erro ao criar o pedido.' });
+      }
+      const pedido_id = results.insertId;
 
-          // Insere os itens de lanche na tabela intermediária
-          let queryLanchePedido = 'INSERT INTO pedido_lanches (pedido_id, lanche_id) VALUES ?';
-          let values = lanches.map(lanche => [pedido_id, lanche.id]);
+      // Insere os itens de lanche na tabela intermediária
+      let queryLanchePedido = 'INSERT INTO pedido_lanches (pedido_id, lanche_id) VALUES ?';
+      let lanchesValues = lanches.map(lanche => [pedido_id, lanche.id]);
 
-          connection.query(queryLanchePedido, [values], (err) => {
-              if (err) {
-                  return res.status(500).json({ message: 'Erro ao adicionar lanches ao pedido.' });
-              }
-              res.status(200).json({ message: 'Pedido adicionado com sucesso' });
-          });
+      connection.query(queryLanchePedido, [lanchesValues], (err) => {
+        if (err) {
+          console.error('Erro ao adicionar lanches ao pedido:', err); // Log do erro para facilitar o debugging
+          return res.status(500).json({ message: 'Erro ao adicionar lanches ao pedido.' });
+        }
+        res.status(200).json({ message: 'Pedido adicionado com sucesso' });
       });
+    });
   };
 }
+
 
 module.exports = insertPedido;
 
