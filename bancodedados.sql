@@ -1,6 +1,6 @@
+-- Alterar o usuário root para usar a autenticação nativa do MySQL
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '';
-SELECT User FROM mysql.user;
- 
+
 -- Criar o banco de dados
 CREATE DATABASE Acaiteria
 DEFAULT CHARACTER SET utf8
@@ -38,18 +38,22 @@ CREATE TABLE IF NOT EXISTS lanches (
     descricao VARCHAR(300)
 ) DEFAULT CHARSET = utf8;
 
--- Criar a tabela de pedidos
+-- Criar a tabela de pedidos com campos para dados do cartão
 CREATE TABLE IF NOT EXISTS pedidos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     cliente_id INT,
     total DECIMAL(10, 2),
-    forma_pagamento ENUM('Pix', 'Cartão de crédito', 'Boleto') NOT NULL,
+    forma_pagamento ENUM('Pix', 'Cartão de crédito') NOT NULL,
     data_pedido TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status_pedido ENUM('pendente', 'entregue') DEFAULT 'pendente',
+    nome_titular VARCHAR(100),   
+    numero_cartao VARCHAR(20),    
+    validade_cartao VARCHAR(5),  
+    cvv VARCHAR(4),               
     FOREIGN KEY (cliente_id) REFERENCES clientes(id)
 ) DEFAULT CHARSET = utf8;
 
--- Criar a tabela intermediária para relacionar pedidos e lanches, sem o campo quantidade
+-- Criar a tabela intermediária para relacionar pedidos e lanches
 CREATE TABLE IF NOT EXISTS pedido_lanches (
     id INT AUTO_INCREMENT PRIMARY KEY,
     pedido_id INT,
@@ -58,6 +62,7 @@ CREATE TABLE IF NOT EXISTS pedido_lanches (
     FOREIGN KEY (lanche_id) REFERENCES lanches(id) ON DELETE CASCADE
 );
 
+-- Inserir alguns lanches
 INSERT INTO lanches (titulo, preco, categoria, descricao)
 VALUES
 ('X-Burger', 17.00, 'Hamburguer', 'Hamburger com queijo, bacon e maionese especial'),
@@ -82,15 +87,15 @@ VALUES
 ('Batata Frita com Alho', 9.50, 'Batata frita', 'Batata frita com alho frito');
 
 -- Inserir alguns pedidos na tabela de pedidos
-INSERT INTO pedidos (cliente_id, total, forma_pagamento, status_pedido)
+INSERT INTO pedidos (cliente_id, total, forma_pagamento, status_pedido, nome_titular, numero_cartao, validade_cartao, cvv)
 VALUES
-(1, 17.00, 'Pix', 'pendente'), 
-(2, 20.00, 'Cartão de crédito', 'pendente'), 
-(3, 39.00, 'Pix', 'pendente'), 
-(4, 18.00, 'Boleto', 'pendente'), 
-(5, 5.00, 'Pix', 'pendente');
+(1, 17.00, 'Pix', 'pendente', NULL, NULL, NULL, NULL), 
+(2, 20.00, 'Cartão de crédito', 'pendente', 'Maria Silva', '1234567812345678', '11/25', '123'), 
+(3, 39.00, 'Pix', 'pendente', NULL, NULL, NULL, NULL), 
+(4, 18.00, 'Pix', 'pendente', NULL, NULL, NULL, NULL), 
+(5, 5.00, 'Pix', 'pendente', NULL, NULL, NULL, NULL);
 
--- Inserir os lanches relacionados aos pedidos na tabela de pedido_lanches, sem a quantidade
+-- Inserir os lanches relacionados aos pedidos na tabela de pedido_lanches
 INSERT INTO pedido_lanches (pedido_id, lanche_id)
 VALUES
 (1, 1), -- Pedido 1: João comprou 1 X-Burger
@@ -99,8 +104,10 @@ VALUES
 (4, 5), -- Pedido 4: Ana comprou 1 Double Cheeseburger
 (5, 3); -- Pedido 5: Pedro comprou 1 Suco de Laranja
 
+-- Adicionar coluna de imagem na tabela de lanches
 ALTER TABLE lanches ADD COLUMN imagem VARCHAR(255);
 
+-- Atualizar a coluna de imagem
 UPDATE lanches SET imagem = '/assets/images/Rectangle 89 (3).png' WHERE id = 1;
 UPDATE lanches SET imagem = '/assets/images/Rectangle 89 (2).png' WHERE id = 2;
 UPDATE lanches SET imagem = '/assets/images/laranja.jpg' WHERE id = 3;
