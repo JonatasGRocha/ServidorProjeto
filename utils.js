@@ -76,38 +76,39 @@ function getHistorico(connection) {
 // Função para buscar lanches
 function searchLanches(connection) {
   return (req, res) => {
-    const searchTerm = req.params.termo;
+      const searchTerm = req.params.termo;
 
-    if (!searchTerm) return res.status(400).json({ error: 'Termo de pesquisa é necessário' });
+      if (!searchTerm) return res.status(400).json({ error: 'Termo de pesquisa é necessário' });
 
-    const isNumber = /^\d+$/.test(searchTerm);
-    const searchValue = `%${searchTerm}%`;
+      const isNumber = /^\d+$/.test(searchTerm);
+      const searchValue = `%${searchTerm}%`;
 
-    let query;
-    let queryParams;
+      let query;
+      let queryParams;
 
-    if (isNumber) {
-      query = `SELECT * FROM lanches WHERE preco LIKE ?;`;
-      queryParams = [searchValue];
-    } else {
-      query = `
-        SELECT * FROM lanches WHERE titulo LIKE ?
-        UNION
-        SELECT * FROM lanches WHERE descricao LIKE ?;
-      `;
-      queryParams = [searchValue, searchValue];
-    }
+      if (isNumber) {
+          query = `SELECT * FROM lanches WHERE preco LIKE ?;`;
+          queryParams = [searchValue];
+      } else {
+          query = `
+              SELECT * FROM lanches WHERE titulo LIKE ?
+              UNION
+              SELECT * FROM lanches WHERE descricao LIKE ?;
+          `;
+          queryParams = [searchValue, searchValue];
+      }
 
-    connection.query(query, queryParams, (err, rows) => {
-      if (err) return res.status(500).json({ error: 'Erro interno do servidor' });
-      if (rows.length === 0) return res.status(404).json({ message: 'Nenhum resultado encontrado' });
-    
-      console.log('Dados retornados do MySQL:', rows); // Adiciona um log para depurar os dados do banco
-      res.status(200).json(rows);
-    });
-    
+      connection.query(query, queryParams, (err, rows) => {
+          if (err) return res.status(500).json({ error: 'Erro interno do servidor' });
+          if (rows.length === 0) return res.status(404).json({ message: 'Nenhum resultado encontrado' });
+
+          console.log('Dados retornados do MySQL:', rows);
+          res.status(200).json(rows);
+      });
   };
 }
+
+
 
 // Função para obter todos os pedidos
 function getPedidos(connection) {
