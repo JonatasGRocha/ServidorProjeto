@@ -13,6 +13,7 @@ USE Acaiteria;
 CREATE TABLE clientes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL UNIQUE,
+    senha VARCHAR(8) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     telefone INT(20) NOT NULL,
     endereco VARCHAR(255) NOT NULL,
@@ -21,13 +22,13 @@ CREATE TABLE clientes (
 );
 
 -- Inserir clientes na tabela de clientes
-INSERT INTO clientes (nome, email, telefone, endereco, cidade, cep)
+INSERT INTO clientes (nome, senha, email, telefone, endereco, cidade, cep)
 VALUES
-('João', 'joao@example.com', 111111111, 'Rua A, 123', 'São Paulo', 01001-000),
-('Maria', 'maria@example.com', 222222222, 'Rua B, 456', 'Rio de Janeiro', 20001-000),
-('Carlos', 'carlos@example.com', 333333333, 'Rua C, 789', 'Belo Horizonte', 30001-000),
-('Ana', 'ana@example.com', 444444444, 'Rua D, 101', 'Porto Alegre', 90001-000),
-('Pedro', 'pedro@example.com', 555555555, 'Rua E, 202', 'Curitiba', 80001-000);
+('João', 'Jo@12345', 'joao@example.com', 111111111, 'Rua A, 123', 'São Paulo', 01001000),
+('Maria', 'Ma#45678', 'maria@example.com', 222222222, 'Rua B, 456', 'Rio de Janeiro', 20001000),
+('Carlos', 'Ca$78901', 'carlos@example.com', 333333333, 'Rua C, 789', 'Belo Horizonte', 30001000),
+('Ana', 'An*10123', 'ana@example.com', 444444444, 'Rua D, 101', 'Porto Alegre', 90001000),
+('Pedro', 'Pe&20234', 'pedro@example.com', 555555555, 'Rua E, 202', 'Curitiba', 80001000);
 
 -- Criar a tabela de lanches
 CREATE TABLE IF NOT EXISTS lanches (
@@ -200,7 +201,7 @@ SELECT titulo, preco FROM lanches WHERE categoria = 'Açaí'
 ORDER BY preco DESC;
 
 -- Atualizar o pedido do cliente com id = 2 para 'entregue':
-UPDATE pedidos SET status_pedido = 'entregue' WHERE id = 2;
+UPDATE pedidos SET status_pedido = 'entregue' WHERE id = 1;
 
 -- Filtrar pedidos com status 'entregue':
 SELECT * FROM pedidos WHERE status_pedido = 'entregue';
