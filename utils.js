@@ -2,6 +2,59 @@
 const homeRoute = (req, res) => {
   res.send('Lanchonete Online!');
 }
+const bcrypt = require('bcrypt');
+
+function register(connection) {
+  return async (req, res) => {
+    const { name, email, password } = req.body;
+
+    // Verificar se todos os dados estão presentes
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Dados incompletos' });
+    }
+
+    try {
+      // Hash da senha
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Verificar se o email já existe na tabela usuarios
+      connection.query(
+        'SELECT * FROM usuarios WHERE email = ?',
+        [email],
+        (err, results) => {
+          if (err) {
+            console.error('Erro ao buscar email:', err);
+            return res.status(500).json({ message: 'Erro interno' });
+          }
+
+          if (results.length > 0) {
+            return res.status(400).json({ message: 'Email já cadastrado' });
+          }
+
+          // Inserir novo usuário na tabela usuarios
+          connection.query(
+            'INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)',
+            [name, email, hashedPassword],
+            (err) => {
+              if (err) {
+                console.error('Erro ao cadastrar usuário:', err);
+                return res.status(500).json({ message: 'Erro ao cadastrar usuário' });
+              }
+
+              res.status(201).json({ message: 'Usuário cadastrado com sucesso' });
+            }
+          );
+        }
+      );
+    } catch (error) {
+      console.error('Erro ao cadastrar usuário:', error);
+      res.status(500).json({ message: 'Erro interno' });
+    }
+  };
+}
+
+module.exports = { register };
+
 
 function getHistorico(connection) {
   return (req, res) => {
@@ -349,6 +402,7 @@ function getLanchesByCategoria(connection) {
 
 
 module.exports = {
+  register,
   homeRoute,
   getHistorico,
   searchLanches,

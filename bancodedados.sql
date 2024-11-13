@@ -9,11 +9,24 @@ DEFAULT COLLATE utf8_general_ci;
 -- Usar o banco de dados
 USE Acaiteria;
 
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL
+);
+
+INSERT INTO usuarios (nome, email, senha) 
+VALUES 
+('João Silva', 'joao.silva@example.com', '$2b$10$Jd2JlKZa0eYcEw5pZ70fM.3jlX9mb0C0czTElVlxw77r.CBdJkO.m'),
+('Maria Oliveira', 'maria.oliveira@example.com', '$2b$10$h6RkJ5jfHDeJYgDWTzLzvOtm7y9SlqSCgU4yo5.jykK/B0cSoYcuG'),
+('Carlos Souza', 'carlos.souza@example.com', '$2b$10$8NdLRUMj5mvGbTVHwxX1/.Se4WnAqCoBEM8iI6dGgmnGeS9DJTt3C');
+
 -- Criar a tabela de clientes
 CREATE TABLE clientes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL UNIQUE,
-    senha VARCHAR(8) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     telefone INT(20) NOT NULL,
     endereco VARCHAR(255) NOT NULL,
