@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors'); // Importando o cors
 const { connection } = require('./configBD');
 const {
+  login,
   register,
   homeRoute,
   getHistorico,
@@ -31,6 +32,7 @@ app.get('/pedidos/:id', getPedidoById(connection));
 app.get('/lanches', getLanches(connection));
 app.get('/lanches/:id', getLancheById(connection));
 app.post('/pedidos', insertPedido(connection));
+app.post('/api/login', login(connection));
 app.post('/api/register', register(connection));
 app.put('/statusPedido/:id', updateStatusPedido(connection));
 app.get('/lanchesCategoria', getLanchesByCategoria(connection));

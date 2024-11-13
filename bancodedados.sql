@@ -18,9 +18,9 @@ CREATE TABLE usuarios (
 
 INSERT INTO usuarios (nome, email, senha) 
 VALUES 
-('João Silva', 'joao.silva@example.com', '$2b$10$Jd2JlKZa0eYcEw5pZ70fM.3jlX9mb0C0czTElVlxw77r.CBdJkO.m'),
-('Maria Oliveira', 'maria.oliveira@example.com', '$2b$10$h6RkJ5jfHDeJYgDWTzLzvOtm7y9SlqSCgU4yo5.jykK/B0cSoYcuG'),
-('Carlos Souza', 'carlos.souza@example.com', '$2b$10$8NdLRUMj5mvGbTVHwxX1/.Se4WnAqCoBEM8iI6dGgmnGeS9DJTt3C');
+('João Silva', 'joao.silva@example.com', 'kkk123'),
+('Maria Oliveira', 'maria.oliveira@example.com', 'M123af'),
+('Carlos Souza', 'carlos.souza@example.com', 'C5647k');
 
 -- Criar a tabela de clientes
 CREATE TABLE clientes (
@@ -151,6 +151,8 @@ SELECT * FROM lanches;
 
 -- Listar todos os pedidos
 SELECT * FROM pedidos;
+
+SELECT * FROM usuarios;
 
 -- Filtrar lanches por categoria (por exemplo, categoria 'Hamburguer'):
 SELECT * FROM lanches WHERE categoria = 'Hamburguer';

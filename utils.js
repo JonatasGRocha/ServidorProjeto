@@ -4,6 +4,66 @@ const homeRoute = (req, res) => {
 }
 const bcrypt = require('bcrypt');
 
+const jwt = require('jsonwebtoken'); // Opcional, se você quiser gerar um token JWT
+
+function login(connection) {
+  return async (req, res) => {
+    const { email, password } = req.body;
+
+    // Verificar se os dados estão completos
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Dados incompletos' });
+    }
+
+    try {
+      // Buscar o usuário no banco de dados
+      connection.query('SELECT * FROM usuarios WHERE email = ?', [email], (err, results) => {
+        if (err) {
+          console.error('Erro ao buscar usuário:', err);
+          return res.status(500).json({ message: 'Erro interno' });
+        }
+
+        if (results.length === 0) {
+          return res.status(400).json({ message: 'E-mail ou senha inválidos' });
+        }
+
+        const user = results[0];
+
+        // Verificar a senha com bcrypt
+        bcrypt.compare(password, user.senha, (err, isMatch) => {
+          if (err) {
+            console.error('Erro ao comparar senhas:', err);
+            return res.status(500).json({ message: 'Erro interno' });
+          }
+
+          if (!isMatch) {
+            return res.status(400).json({ message: 'E-mail ou senha inválidos' });
+          }
+
+          // Gerar o token JWT
+          const token = jwt.sign(
+            { id: user.id, email: user.email },
+            'secreta123',  // Sua chave secreta
+            { expiresIn: '1h' }
+          );
+
+          // Retornar a resposta com o token
+          res.status(200).json({
+            message: 'Login realizado com sucesso',
+            token: token
+          });
+        });
+      });
+    } catch (error) {
+      console.error('Erro ao realizar login:', error);
+      res.status(500).json({ message: 'Erro interno' });
+    }
+  };
+}
+
+module.exports = { login };
+
+
 function register(connection) {
   return async (req, res) => {
     const { name, email, password } = req.body;
@@ -17,7 +77,7 @@ function register(connection) {
       // Hash da senha
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Verificar se o email já existe na tabela usuarios
+      // Verificar se o email já existe
       connection.query(
         'SELECT * FROM usuarios WHERE email = ?',
         [email],
@@ -31,7 +91,7 @@ function register(connection) {
             return res.status(400).json({ message: 'Email já cadastrado' });
           }
 
-          // Inserir novo usuário na tabela usuarios
+          // Inserir novo usuário no banco de dados
           connection.query(
             'INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)',
             [name, email, hashedPassword],
@@ -41,7 +101,12 @@ function register(connection) {
                 return res.status(500).json({ message: 'Erro ao cadastrar usuário' });
               }
 
-              res.status(201).json({ message: 'Usuário cadastrado com sucesso' });
+              // Resposta indicando sucesso com o e-mail e senha para redirecionar
+              res.status(201).json({ 
+                message: 'Usuário cadastrado com sucesso', 
+                email,
+                password
+              });
             }
           );
         }
@@ -54,6 +119,7 @@ function register(connection) {
 }
 
 module.exports = { register };
+
 
 
 function getHistorico(connection) {
@@ -402,6 +468,7 @@ function getLanchesByCategoria(connection) {
 
 
 module.exports = {
+  login,
   register,
   homeRoute,
   getHistorico,
