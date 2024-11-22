@@ -34,7 +34,7 @@ app.get('/lanches/:id', getLancheById(connection));
 app.post('/pedidos', insertPedido(connection));
 app.post('/api/login', login(connection));
 app.post('/api/register', register(connection));
-app.put('/statusPedido/:id', updateStatusPedido(connection));
+app.post('/atualizar-status', updateStatusPedido(connection));
 app.get('/lanchesCategoria', getLanchesByCategoria(connection));
 
 // Página não encontrada

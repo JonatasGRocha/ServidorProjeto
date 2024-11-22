@@ -425,24 +425,25 @@ function insertPedido(connection) {
 module.exports = insertPedido;
 
 
-
-// Função para atualizar o status do pedido
 function updateStatusPedido(connection) {
   return (req, res) => {
-    const statusPedidoId = req.params.id;
-    const { status_pedido } = req.body;
+    const { status_pedido } = req.body; // Recebe o status do corpo da requisição
+
+    if (!status_pedido) {
+      return res.status(400).json({ error: 'Status do pedido não fornecido' });
+    }
 
     connection.query(
-      'UPDATE pedidos SET status_pedido = ? WHERE id = ?',
-      [status_pedido, statusPedidoId],
+      'UPDATE pedidos SET status_pedido = ? WHERE status_pedido = "pendente"',
+      [status_pedido], // Atualiza todos os pedidos com status "pendente"
       (err, result) => {
         if (err) return res.status(500).json({ error: 'Erro interno do servidor' });
-        if (result.affectedRows === 0) return res.status(404).json({ message: 'Nenhum pedido encontrado' });
-        res.status(200).json({ message: 'Status do pedido atualizado com sucesso' });
+        res.status(200).json({ message: `Status de ${result.affectedRows} pedidos atualizado para "${status_pedido}"` });
       }
     );
   };
 }
+
 
 function getLanchesByCategoria(connection) {
   return (req, res) => {

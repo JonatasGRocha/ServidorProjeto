@@ -26,7 +26,6 @@ VALUES
 CREATE TABLE clientes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL UNIQUE,
-    senha VARCHAR(255) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     telefone INT(20) NOT NULL,
     endereco VARCHAR(255) NOT NULL,
@@ -35,13 +34,13 @@ CREATE TABLE clientes (
 );
 
 -- Inserir clientes na tabela de clientes
-INSERT INTO clientes (nome, senha, email, telefone, endereco, cidade, cep)
+INSERT INTO clientes (nome, email, telefone, endereco, cidade, cep)
 VALUES
-('João', 'Jo@12345', 'joao@example.com', 111111111, 'Rua A, 123', 'São Paulo', 01001000),
-('Maria', 'Ma#45678', 'maria@example.com', 222222222, 'Rua B, 456', 'Rio de Janeiro', 20001000),
-('Carlos', 'Ca$78901', 'carlos@example.com', 333333333, 'Rua C, 789', 'Belo Horizonte', 30001000),
-('Ana', 'An*10123', 'ana@example.com', 444444444, 'Rua D, 101', 'Porto Alegre', 90001000),
-('Pedro', 'Pe&20234', 'pedro@example.com', 555555555, 'Rua E, 202', 'Curitiba', 80001000);
+('João', 'joao@example.com', 111111111, 'Rua A, 123', 'São Paulo', 01001000),
+('Maria', 'maria@example.com', 222222222, 'Rua B, 456', 'Rio de Janeiro', 20001000),
+('Carlos', 'carlos@example.com', 333333333, 'Rua C, 789', 'Belo Horizonte', 30001000),
+('Ana', 'ana@example.com', 444444444, 'Rua D, 101', 'Porto Alegre', 90001000),
+('Pedro', 'pedro@example.com', 555555555, 'Rua E, 202', 'Curitiba', 80001000);
 
 -- Criar a tabela de lanches
 CREATE TABLE IF NOT EXISTS lanches (
@@ -101,22 +100,7 @@ VALUES
 ('Batata Frita com Alho', 9.50, 'Batata frita', 'Batata frita com alho frito');
 
 -- Inserir alguns pedidos na tabela de pedidos
-INSERT INTO pedidos (cliente_id, total, forma_pagamento, status_pedido, nome_titular, numero_cartao, validade_cartao, cvv)
-VALUES
-(1, 17.00, 'Pix', 'pendente', NULL, NULL, NULL, NULL), 
-(2, 20.00, 'Cartão de crédito', 'pendente', 'Maria Silva', '1234567812345678', '11/25', '123'), 
-(3, 39.00, 'Pix', 'pendente', NULL, NULL, NULL, NULL), 
-(4, 18.00, 'Pix', 'pendente', NULL, NULL, NULL, NULL), 
-(5, 5.00, 'Pix', 'pendente', NULL, NULL, NULL, NULL);
 
--- Inserir os lanches relacionados aos pedidos na tabela de pedido_lanches
-INSERT INTO pedido_lanches (pedido_id, lanche_id)
-VALUES
-(1, 1), -- Pedido 1: João comprou 1 X-Burger
-(2, 4), -- Pedido 2: Maria comprou 1 Batata Frita Grande
-(3, 6), -- Pedido 3: Carlos comprou 1 Açaí com Morango
-(4, 5), -- Pedido 4: Ana comprou 1 Double Cheeseburger
-(5, 3); -- Pedido 5: Pedro comprou 1 Suco de Laranja
 
 -- Adicionar coluna de imagem na tabela de lanches
 ALTER TABLE lanches ADD COLUMN imagem VARCHAR(255);
@@ -153,6 +137,10 @@ SELECT * FROM lanches;
 SELECT * FROM pedidos;
 
 SELECT * FROM usuarios;
+
+SELECT * FROM clientes;
+
+SELECT * FROM pedido_lanches;
 
 -- Filtrar lanches por categoria (por exemplo, categoria 'Hamburguer'):
 SELECT * FROM lanches WHERE categoria = 'Hamburguer';
