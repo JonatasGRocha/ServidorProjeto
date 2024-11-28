@@ -43,14 +43,18 @@ function login(connection) {
           // Gerar o token JWT
           const token = jwt.sign(
             { id: user.id, email: user.email },
-            'secreta123',  // Sua chave secreta
+            'secreta123', // Substitua por uma chave secreta mais forte em produção
             { expiresIn: '1h' }
           );
 
-          // Retornar a resposta com o token
+          // Retornar a resposta com o token e os dados do usuário
           res.status(200).json({
             message: 'Login realizado com sucesso',
-            token: token
+            token: token,
+            user: {
+              name: user.nome, // Certifique-se de que a coluna no banco de dados é 'nome'
+              email: user.email
+            }
           });
         });
       });
